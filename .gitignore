@@ -1,0 +1,4 @@
+build/
+*.blend1
+renders/*_draft.png
+__pycache__/
