@@ -1,18 +1,25 @@
-"""Render views of out/osint_sled.blend.
-usage: python render_views.py <view> <quality: draft|final>"""
+"""Render a view of model/osint_sled.blend with Cycles.
+
+usage: python scripts/render_views.py <hero|exploded|layout|thermal|reference> <draft|final>
+Set EXPO to override the exposure (default -2.5)."""
 import os
 import sys
 from pathlib import Path
 
-import bpy
+import bpy  # must be imported before mathutils
 import mathutils
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sled_config import D, W  # noqa: E402
+
+VIEWS = ("hero", "exploded", "layout", "thermal", "reference")
 ROOT = Path(__file__).resolve().parents[1]
 view, quality = sys.argv[-2], sys.argv[-1]
+if view not in VIEWS or quality not in ("draft", "final"):
+    raise SystemExit(__doc__)
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / "model/osint_sled.blend"))
 scene = bpy.context.scene
 MM = 0.001
-W, D = 355.7, 248.1
 
 
 def col(name):
