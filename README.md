@@ -4,7 +4,7 @@ A ~12 mm machined-aluminium sled that sits under a 16" MacBook Pro and holds a f
 
 ![Assembled: MacBook Pro 16 on the sled](renders/render_hero.png)
 
-> **Status: concept model.** Nothing here has been built or tested. Board geometry is real where open-hardware files exist; everything else is modelled from published dimensions or is a sized placeholder (see [Geometry sources](#geometry-sources)). Every screw, connector and mount part is modelled from its standard or datasheet dimensions. `scripts/check_model.py` verifies the model is physically consistent: no parts collide, every screw lands in its tapped hole with enough thread engaged, the Mac is held and slides in and out freely, the ports, SMA nuts and lid have room, and the KrakenSDR cables are phase matched. It does not verify that the electronics work. The MacBook's foot, port and edge-radius positions are estimates, because Apple publishes no dimensioned drawing of the 16" MacBook Pro (see [MacBook mount](#macbook-mount)).
+> **Status: concept model.** Nothing here has been built or tested. Board geometry is real where open-hardware files exist; everything else is modelled from published dimensions or is a sized placeholder (see [Geometry sources](#geometry-sources)). Every screw, connector and mount part is modelled from its standard or datasheet dimensions. `scripts/check_model.py` verifies the model is physically consistent: no parts collide, every screw lands in its tapped hole with enough thread engaged, the jaw liners are preloaded against the Mac, the Mac slides in and out freely, the ports, SMA nuts and lid have room, and the KrakenSDR cables are phase matched. It does not verify that the electronics work. The MacBook's foot, port and edge-radius positions are estimates, because Apple publishes no dimensioned drawing of the 16" MacBook Pro (see [MacBook mount](#macbook-mount)).
 
 ---
 
@@ -92,12 +92,12 @@ The Mac slides in from the front and is held on all sides without covering a por
 
 | Part | What it does |
 |---|---|
-| 4 side jaws (6061, black anodised) | A web outside the Mac's side and a 1.2 mm flange on the top plate, under the Mac's edge. Each is screwed down with two ISO 14581 M2×6 countersunk screws through the flange and the top plate into a boss in the sled wall. A 0.8 mm TPU 85A liner on the inside touches the Mac (about 0.15 mm squeeze takes up Apple's width tolerance). The front jaws rise 7 mm up the Mac's side. Near the ports, the rear jaws rise only 3 mm, below the lowest plug overmould. |
+| 4 side jaws (6061, black anodised) | A web outside the Mac's side and a 1.2 mm flange on the top plate, under the Mac's edge. Each is screwed down with two ISO 14581 M2×6 countersunk screws through the flange and the top plate into a boss in the sled wall. A 0.8 mm TPU 85A liner on the inside is squeezed 0.15 mm per side by the Mac (the jaws sit 0.15 mm inside the free width), which gives the clamping preload; the check measures that squeeze and that a Mac 0.1 mm narrower per side would still be clamped. The front jaws rise 7 mm up the Mac's side. Near the ports, the rear jaws rise only 3 mm, below the lowest plug overmould. |
 | 2 rear corner stops | Returns on the rear jaws that wrap 22 mm around each rear corner, 3 mm high. They stop the Mac sliding back and stay below the path of the lid's lower edge. |
 | 2 front latches | A POM pawl in an anodised block in front of each front corner, pushed up 2.5 mm above the Mac's bottom face by a compression spring (Ø2.6 × 0.3 mm wire) and kept in by a Ø1 × 8 mm ISO 2338 pin running in a slot in the pawl. The entry ramp faces forward: the Mac's underside pushes the pawl down as it slides in, and the pawl snaps up in front of the Mac's front face. To take the Mac out, press both pawls down and slide it forward. Each block is held by two ISO 4762 M2×8 screws into the sled's front wall. |
 | 2 silicone rails | The Mac's feet sit on these (2 mm), leaving an air gap for its own intake. |
 
-With the mount, the sled's outline grows to 362.3 × 257.9 mm (jaws 3.3 mm per side, latches 6.5 mm at the front, corner stops 3.3 mm at the back).
+With the mount, the sled's outline grows to 362.0 × 257.9 mm (jaws 3.15 mm per side, latches 6.5 mm at the front, corner stops 3.3 mm at the back).
 
 **What holds the Mac down.** Nothing hooks over it: the MacBook Pro has no undercut that a clip could catch without covering a port, a vent or the lid's path. Lift is held by the jaws' clamping friction. Sideways, forward and backward movement is held positively by the jaws, the corner stops and the pawls. If you need a positive hold-down, the next step is keyhole studs in place of some of the bottom-case screws, but that needs the real screw positions and thread depth from a measured Mac.
 

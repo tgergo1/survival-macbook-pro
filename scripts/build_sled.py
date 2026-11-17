@@ -27,7 +27,7 @@ from sled_config import (  # noqa: E402
     BASE_T, BLOWER, BLOWER_C, BOARDS, BOARD_MAX_X, BOSS_R, CABLE_DESCENT_X, CORNER_R,
     CORNER_R_CABLE, COAX_R, D, EXHAUST, FINS, FLANGE_T, FLANGE_W, FOOT_H, HACKRF, HACKRF_HOLES,
     HACKRF_KEEP_X, HEAT_PIPES, HOLE_INSET, HP_T, HP_W, JAWS, JAW_SCREWS, JAW_SCREW_X, JAW_T, LANES,
-    LATCH, LID_KEEPOUT, LINER_T, MAC, MAC_FOOT_T, MAC_PLUG_LEN, MAC_PORTS, MAC_PORT_CZ, MAC_Z,
+    LATCH, LID_KEEPOUT, LINER_SQUEEZE, LINER_T, MAC, MAC_FOOT_T, MAC_PLUG_LEN, MAC_PORTS, MAC_PORT_CZ, MAC_Z,
     MHF4_RECEPT_H, PAD_GAP, PAD_T, PCB_T, PCB_TOP, PCB_Z0, PEDESTALS, PLENUM, RAIL_T,
     REAR_RETURN, SIDE_INTAKE, SILICONE_RAILS, SMA_FERRULE_X, SMA_HOLE_FLAT, SMA_HOLE_R, TOP_SCREWS,
     TOP_Z0, TOP_Z1, USBC, USBC_PORTS, W, WALL_BOSS_R, WALL_T, Z_HIGH, Z_LOW, Z_SMA,
@@ -500,12 +500,13 @@ def jaw(j):
     JAW_Z1[j["name"]] = z1
     y0, y1 = j["y0"], j["y1"]
     yo = y1 + (LINER_T + JAW_T if j["rear"] else 0)
-    xa, xb = sorted((sx(-LINER_T - JAW_T), sx(-LINER_T)))
+    sq = LINER_SQUEEZE                     # jaws sit this much inside the Mac's free width
+    xa, xb = sorted((sx(-LINER_T - JAW_T + sq), sx(-LINER_T + sq)))
     objs = [rbox("web", xa, y0, TOP_Z0, xb, yo, z1, M["alu_dark"], C_STAGE)]
-    fa, fb = sorted((sx(-LINER_T - JAW_T), sx(FLANGE_W)))
+    fa, fb = sorted((sx(-LINER_T - JAW_T + sq), sx(FLANGE_W)))
     objs.append(rbox("flange", fa, y0, TOP_Z1, fb, y1 if not j["rear"] else D - CORNER_R * 0.4, TOP_Z1 + FLANGE_T, M["alu_dark"], C_STAGE, r=0.8))
     if j["rear"]:
-        ra, rb = sorted((sx(-LINER_T - JAW_T), sx(REAR_RETURN)))
+        ra, rb = sorted((sx(-LINER_T - JAW_T + sq), sx(REAR_RETURN)))
         objs.append(rbox("return", ra, D + LINER_T, TOP_Z1, rb, D + LINER_T + JAW_T, z1, M["alu_dark"], C_STAGE))
     for o in objs:
         apply_tf(o)
@@ -528,12 +529,12 @@ def jaw(j):
     bev.width = 0.25 * MM
     bev.limit_method = "ANGLE"
     # TPU liner on the inside of the web (and of the rear return)
-    la, lb = sorted((sx(-LINER_T), sx(0)))
-    liner = [rbox(j["name"] + " liner", la, y0 + 0.5, TOP_Z1 + FLANGE_T, lb, y1, z1 - 0.3, M["tpu"], C_MOUNT)]
+    # free (uncompressed) liner: it overlaps the Mac's side by LINER_SQUEEZE, which is the preload
+    la, lb = sorted((sx(-LINER_T + sq), sx(sq)))
+    rbox(j["name"] + " TPU liner", la, y0 + 0.5, TOP_Z1 + FLANGE_T, lb, y1, z1 - 0.3, M["tpu"], C_MOUNT)
     if j["rear"]:
         ra, rb = sorted((sx(MAC["r_plan"] - 2.0), sx(REAR_RETURN - 0.5)))
-        liner.append(rbox("rear liner", ra, D, TOP_Z1 + 0.3, rb, D + LINER_T, z1 - 0.3, M["tpu"], C_MOUNT))
-    join(liner, j["name"] + " TPU liner")
+        rbox(j["name"] + " rear stop liner", ra, D, TOP_Z1 + 0.3, rb, D + LINER_T, z1 - 0.3, M["tpu"], C_MOUNT)
     for k, y in enumerate(JAW_SCREWS[j["name"]]):
         screw("csk", "M2", 6, (sx(JAW_SCREW_X), y, TOP_Z1 + FLANGE_T), "+Z", C_FAST,
               f"Screw M2x6 countersunk ({j['name']} #{k + 1})", into="wall boss", grip=FLANGE_T + 1.0)

@@ -200,7 +200,10 @@ LID_KEEPOUT = dict(dy=8.0, z_above_bottom=5.0)
 # friction (the MacBook has no undercut that could be hooked without covering
 # a port, a vent or the lid's path).
 JAW_T = 2.5                  # 6061 jaw web, black anodised
-LINER_T = 0.8                # TPU 85A liner; 0.15 mm nominal squeeze on the Mac's width tolerance
+LINER_T = 0.8                # TPU 85A liner, free thickness
+LINER_SQUEEZE = 0.15         # interference per side: the jaws sit 0.15 mm closer than the free liner needs,
+                             # so the liners are compressed and clamp the Mac (modelled as overlap)
+MAC_WIDTH_TOL = 0.2          # estimate: total width tolerance of the Mac; worst case leaves 0.05 mm squeeze per side
 FLANGE_T = 1.2               # jaw flange on the top plate, under the Mac's edge (1.4 mm air gap left)
 FLANGE_W = 9.0               # flange reaches this far in under the Mac
 JAWS = [   # side, y0, y1, top above the Mac's bottom face, rear corner return

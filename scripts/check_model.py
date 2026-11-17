@@ -16,7 +16,10 @@ Checks
   5. The five KrakenSDR pigtails are the same length within tolerance.
   6. Every screw engages at least MIN_ENGAGEMENT x d of thread in metal,
      measured on the geometry (not taken from the config).
-  7. The Mac is held: every jaw liner, both rear stops and both pawls touch it.
+  7. The Mac is held: every side liner is compressed by the design squeeze
+     (LINER_SQUEEZE, measured as the liner's depth into the Mac) and still
+     would be on a Mac at the narrow end of MAC_WIDTH_TOL; both rear stops
+     and both pawls touch it.
   8. The Mac slides in and out from the front without hitting anything but
      the pawls (which it pushes down).
   9. Keep-out envelopes are clear: SMA nut driver and mating plug, USB-C plugs
@@ -35,7 +38,7 @@ from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sled_config import (  # noqa: E402
-    BASE_T, D, HEAT_PIPES, HP_W, KRAKEN_LENGTH_TOL, MIN_ENGAGEMENT, PEDESTALS, PEDESTALS_PLATE_ONLY, TOP_Z0,
+    BASE_T, D, HEAT_PIPES, HP_W, KRAKEN_LENGTH_TOL, LINER_SQUEEZE, MAC_WIDTH_TOL, MIN_ENGAGEMENT, PEDESTALS, PEDESTALS_PLATE_ONLY, TOP_Z0,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,6 +143,8 @@ for a, b in itertools.combinations(parts + mac, 2):
         continue
     if (a.tag and a.tag == b.tag) or (a in mac and b in mac):
         continue
+    if (a in mac and "TPU liner" in b.name) or (b in mac and "TPU liner" in a.name):
+        continue                    # designed interference: measured in check 7
     n_pairs += 1
     hits = a.bvh.overlap(b.bvh)
     if hits:
@@ -253,16 +258,39 @@ def min_dist(a, b):
     return best
 
 
+def penetration(a, b):
+    """How deep a's vertices reach into solid b (mm); 0 if none are inside."""
+    deepest = 0.0
+    for v in a.verts:
+        loc, nrm, _, d = b.exact.find_nearest(v)
+        if loc is not None and (loc - v).dot(nrm) > 0:
+            deepest = max(deepest, d / MM)
+    return deepest
+
+
 mac_base = next(m for m in mac if m.name.startswith("MacBook base"))
-holders = [p for p in parts if p.coll == "Mount" and ("liner" in p.name or "pawl" in p.name)]
-for h in holders:
+side_liners = [p for p in parts if p.name.endswith("TPU liner")]
+stops = [p for p in parts if p.coll == "Mount" and ("rear stop liner" in p.name or "pawl" in p.name)]
+for h in side_liners:              # clamping: each side liner must be compressed by the design squeeze
+    pen = penetration(h, mac_base)
+    if abs(pen - LINER_SQUEEZE) > 0.02:
+        fail(f"{h.name} is compressed {pen:.3f} mm by the Mac, design squeeze is {LINER_SQUEEZE} mm")
+    elif pen - MAC_WIDTH_TOL / 2 <= 0:
+        fail(f"{h.name}: a Mac {MAC_WIDTH_TOL / 2} mm narrower per side would leave the liner slack")
+    else:
+        print(f"     {h.name}: squeezed {pen:.3f} mm (worst-case Mac width: {pen - MAC_WIDTH_TOL / 2:.3f} mm)")
+for h in stops:                    # positive stops: touch, never overlap (overlap is caught in check 1)
     d = min_dist(h, mac_base)
     if d > 0.05:
         fail(f"{h.name} does not touch the Mac (gap {d:.2f} mm)")
-print(f"7. Mac held: {len(holders)} liners and pawls checked for contact")
+if len(side_liners) != 4:
+    fail(f"expected 4 side jaw liners, found {len(side_liners)}")
+print(f"7. Mac held: {len(side_liners)} liners preloaded, {len(stops)} stops and pawls touching")
 
 # 8: insertion path (slide the Mac forward out of the cradle, then back)
-static = [p for p in parts if p.coll in ("Mount", "Top plate", "Fasteners", "Sled chassis") and "pawl" not in p.name]
+# the pawls are pushed down and the side liners stay compressed while the Mac slides (checked in 7)
+static = [p for p in parts if p.coll in ("Mount", "Top plate", "Fasteners", "Sled chassis")
+          and "pawl" not in p.name and not p.name.endswith("TPU liner")]
 movers = [(m, m.verts, m.tris, m.normals) for m in mac]
 y = 0.0
 hits8 = set()
