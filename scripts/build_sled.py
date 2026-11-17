@@ -31,12 +31,13 @@ from sled_config import (  # noqa: E402
     MHF4_RECEPT_H, PAD_GAP, PAD_T, PCB_T, PCB_TOP, PCB_Z0, PEDESTALS, PLENUM, RAIL_T,
     REAR_RETURN, SIDE_INTAKE, SILICONE_RAILS, SMA_FERRULE_X, SMA_HOLE_FLAT, SMA_HOLE_R, TOP_SCREWS,
     TOP_Z0, TOP_Z1, USBC, USBC_PORTS, W, WALL_BOSS_R, WALL_T, Z_HIGH, Z_LOW, Z_SMA,
-    BRIDGE, COLUMN_R, MAC_STUDS, MIN_ENGAGEMENT_STEEL, SLED_FEET, STUD, STUD_BOLT_LEN, MAC_BOTTOM_SCREWS, MAC_VENTS, STOCK_SCREW,
+    FFC, FFC_ROUTES, FRONT_LANES, FRONT_DESCENT_Y, SMA_INSIDE, ANTENNAS, FZ_WINDOW, BRIDGE, STUD_BOLT_RECESS, COLUMN_R, MAC_STUDS, MIN_ENGAGEMENT_STEEL, SLED_FEET, STUD, STUD_BOLT_LEN, MAC_BOTTOM_SCREWS, MAC_VENTS, STOCK_SCREW,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 HACKRF_GLB = str(ROOT / "model/assets/hackrf-one.glb")
 FLIPPER_GLB = str(ROOT / "model/assets/flipper-zero.glb")
+FLIPPER_ONE_GLB = str(ROOT / "model/assets/flipper-one.glb")
 OUT_BLEND = str(ROOT / "model/osint_sled.blend")
 T = parts.THREAD
 
@@ -60,6 +61,7 @@ C_TOP = coll("Top plate")
 C_FAST = coll("Fasteners")
 C_MOUNT = coll("Mount")
 C_BRIDGE = coll("Bridge")
+C_FFC = coll("USB wiring")
 C_MAC = coll("MacBook Pro 16")
 C_EXT = coll("External cables")
 C_KEEP = coll("Keep-out envelopes")
@@ -126,6 +128,9 @@ def mirror_x(x):
 base = rbox("Base plate (6061, 2.5 mm)", 0, 0, 0, W, D, BASE_T, M["alu"], C_SLED, r=CORNER_R, bevel=0.4)
 boolean_cut(base, rbox("cut", 188, 12, -1, 248, 54, BASE_T + 1, None, C_SLED, r=4))
 rbox("Proxmark RF window (PC)", 188, 12, 0.2, 248, 54, BASE_T - 0.2, M["window"], C_SLED, r=4)
+fx0, fy0, fx1, fy1 = FZ_WINDOW         # second window under the Flipper Zero's NFC / 125 kHz coils
+boolean_cut(base, rbox("cut", fx0, fy0, -1, fx1, fy1, BASE_T + 1, None, C_SLED, r=4))
+rbox("Flipper Zero RF window (PC)", fx0, fy0, 0.2, fx1, fy1, BASE_T - 0.2, M["window"], C_SLED, r=4)
 
 wall_z0, wall_z1 = BASE_T, TOP_Z0
 walls = rbox("Side walls", 0, 0, wall_z0, W, D, wall_z1, M["alu"], C_SLED, r=CORNER_R, bevel=0.3)
@@ -163,20 +168,26 @@ while y + 3 <= SIDE_INTAKE["y1"]:
 cut_many(walls, slots)
 
 
-def d_hole(y, z):
-    """6.5 mm SMA panel hole with an anti-rotation flat on top (local x = world -z)."""
+def d_hole(at, axis="+X"):
+    """6.5 mm SMA panel hole with an anti-rotation flat on top. `at` is a point
+    0.5 mm inside the wall's inner face on the hole axis; `axis` points out."""
+    ux, uy = parts.up_in_local(axis)
     pts = []
     for k in range(40):
         a = 2 * math.pi * k / 40
         lx, ly = SMA_HOLE_R * math.cos(a), SMA_HOLE_R * math.sin(a)
-        pts.append((max(lx, -SMA_HOLE_FLAT), ly))
+        over = lx * ux + ly * uy - SMA_HOLE_FLAT
+        if over > 0:                      # push the point back onto the flat
+            lx, ly = lx - over * ux, ly - over * uy
+        pts.append((lx, ly))
     ob = prism("cut", pts, -1, WALL_T + 2, None, C_STAGE)
-    place(ob, (W - WALL_T - 0.5, y, z), "+X")
+    place(ob, at, axis)
     return ob
 
 
 USBC_ZC = PCB_Z0 + PCB_T / 2
-cuts = [d_hole(LANES[n], Z_SMA) for n in LANES]
+cuts = [d_hole((W - WALL_T - 0.5, LANES[n], Z_SMA)) for n in LANES]
+cuts += [d_hole((x, WALL_T + 0.5, Z_SMA), "-Y") for x in FRONT_LANES.values()]
 cuts += [rbox("cut", -1, yc - USBC["w"] / 2 - 0.4, USBC_ZC - USBC["h"] / 2 - 0.4,
               WALL_T + 1, yc + USBC["w"] / 2 + 0.4, USBC_ZC + USBC["h"] / 2 + 0.4, None, C_STAGE, r=1.2)
          for _, yc in USBC_PORTS]
@@ -196,6 +207,8 @@ defl.rotation_euler = (math.radians(-38), 0, 0)
 # SMA bulkhead jacks on the right wall, one per RF lane
 for name, y in LANES.items():
     parts.sma_bulkhead(f"SMA bulkhead ({name})", (W, y, Z_SMA), WALL_T, C_SLED, M, C_STAGE)
+for name, x in FRONT_LANES.items():
+    parts.sma_bulkhead(f"SMA bulkhead ({name})", (x, 0, Z_SMA), WALL_T, C_SLED, M, C_STAGE, axis="-Y")
 
 # blower intake grille through the base plate, plus taller feet for the intake gap
 grille = []
@@ -207,7 +220,8 @@ for gx in range(-3, 4):
 cut_many(base, grille)
 csk_from_below = []
 for x, y in MAC_STUDS:           # countersunk clearance holes for the stud bolts, flush with the underside
-    c = lathe("cut", [(0, -0.5), (2.4, -0.5), (2.0, 0.0), (T["M2"]["clr"] / 2, 2.0 - T["M2"]["clr"] / 2),
+    r0 = STUD_BOLT_RECESS       # head sits this far up in a short counterbore, so its tip reaches the stud's full thread
+    c = lathe("cut", [(0, -0.5), (2.1, -0.5), (2.1, r0), (2.0, r0), (T["M2"]["clr"] / 2, r0 + 2.0 - T["M2"]["clr"] / 2),
                       (T["M2"]["clr"] / 2, BASE_T + 0.5), (0, BASE_T + 0.5)], None, C_STAGE, seg=24)
     c.data.transform(mathutils.Matrix.Translation((x * MM, y * MM, 0)))
     csk_from_below.append(c)
@@ -279,7 +293,7 @@ def board(spec):
     name, (x0, y0, x1, y1) = spec["name"], spec["rect"]
     assert x1 <= BOARD_MAX_X, f"{name} intrudes on the cable descent zone"
     pcb = rbox(name + " PCB", x0, y0, PCB_Z0, x1, y1, PCB_TOP, M[spec.get("mat", "pcb")], C_BOARDS, r=1.5)
-    cuts = [clr_hole(hx, hy, PCB_Z0, PCB_TOP, "M2") for hx, hy in board_holes(spec)]
+    cuts = [clr_hole(hx, hy, PCB_Z0, PCB_TOP, "M2") for hx, hy in board_holes(spec)] or [None]
     if name.startswith("Dock board"):       # notches for the mid-mount USB-C receptacles
         for _, yc in USBC_PORTS:
             cuts.append(rbox("cut", x0 - 1, yc - USBC["w"] / 2 - 0.2, PCB_Z0 - 1,
@@ -297,7 +311,12 @@ def board(spec):
         for pname, yc in USBC_PORTS:
             parts.usbc_receptacle(f"USB-C receptacle ({pname})", (USBC["x0"], yc, USBC_ZC), C_BOARDS, M, C_STAGE)
     for k, (hx, hy) in enumerate(board_holes(spec)):
-        screw("pan", "M2", 5, (hx, hy, PCB_TOP), "+Z", C_FAST, f"Screw M2x5 ({name} #{k + 1})", into="boss", grip=PCB_T)
+        if spec.get("hole_washer"):       # 3.2 mm holes for M3 in the original enclosure: M2 + DIN 433 washer
+            parts.washer("M2", (hx, hy, PCB_TOP), "+Z", C_FAST, f"Washer DIN 433 M2 ({name} #{k + 1})", M)
+            screw("pan", "M2", 5, (hx, hy, PCB_TOP + parts.WASHER["M2"][2]), "+Z", C_FAST, f"Screw M2x5 ({name} #{k + 1})",
+                  into="boss", grip=PCB_T + parts.WASHER["M2"][2])
+        else:
+            screw("pan", "M2", 5, (hx, hy, PCB_TOP), "+Z", C_FAST, f"Screw M2x5 ({name} #{k + 1})", into="boss", grip=PCB_T)
     return ob
 
 
@@ -311,7 +330,8 @@ def pocket_wall(name, x0, y0, x1, y1, holes, size="M2", notches=(), tap_depth=4.
           for hx, hy in holes]
     for b in bs:
         apply_tf(b)
-    boolean(ring, join(bs, "bosses"), op="UNION")
+    if bs:
+        boolean(ring, join(bs, "bosses"), op="UNION")
     cuts = [rbox("cut", *n[:2], BASE_T - 1, *n[2:], PCB_Z0 + 1, None, C_STAGE) for n in notches]
     cuts += [tap_hole(hx, hy, PCB_Z0, tap_depth, size) for hx, hy in holes]
     cut_many(ring, cuts)
@@ -489,8 +509,42 @@ for cname, lane in LANES.items():
     kraken = cname.startswith("Kraken")
     poly_curve(f"Pigtail ({cname})", pts, M["coax_kraken" if kraken else "coax"], C_CABLES, radius=COAX_R)
     parts.mhf4_plug(f"MHF4 plug ({cname})", ux, uy, PCB_TOP, direction, C_CABLES, M)
+FRONT_FERRULE_Y = WALL_T + SMA_INSIDE
+
+
+def route_front(ux, uy, x_lane):
+    """To a front-wall bulkhead: along x on the lower layer, one bend, then
+    along -y on the upper layer, then an S-bend down into the crimp ferrule."""
+    pts = [(ux, uy, Z_PLUG)]
+    if abs(x_lane - ux) > 1e-6:
+        s = 1 if x_lane > ux else -1
+        R = CORNER_R_CABLE
+        assert abs(x_lane - ux) >= R + 3, f"front lane {x_lane} too close to connector at x={ux}"
+        pts += [(ux + s * 3, uy, Z_LOW), (x_lane - s * R, uy, Z_LOW)]
+        cx, cy = x_lane - s * R, uy - R
+        for k in range(1, 9):
+            a = math.radians(90 - s * 90 * k / 8)
+            pts.append((cx + R * math.cos(a), cy + R * math.sin(a), Z_LOW + (Z_HIGH - Z_LOW) * k / 8))
+        direction = (s, 0)
+    else:
+        pts += [(ux, uy - 3, Z_HIGH)]
+        direction = (0, -1)
+    n = 10
+    for k in range(n + 1):
+        t = k / n
+        y = FRONT_DESCENT_Y + (FRONT_FERRULE_Y - FRONT_DESCENT_Y) * t
+        pts.append((x_lane, y, Z_HIGH + (Z_SMA - Z_HIGH) * (1 - math.cos(math.pi * t)) / 2))
+    return pts, direction
+
+
+for cname, x_lane in FRONT_LANES.items():
+    ux, uy = UFL_POS[cname]
+    pts, direction = route_front(ux, uy, x_lane)
+    lengths[cname] = polyline_length(pts)
+    poly_curve(f"Pigtail ({cname})", pts, M["coax"], C_CABLES, radius=COAX_R)
+    parts.mhf4_plug(f"MHF4 plug ({cname})", ux, uy, PCB_TOP, direction, C_CABLES, M)
 for cname, L in lengths.items():
-    print(f"pigtail {cname:18s} {L:6.1f} mm")
+    print(f"pigtail {cname:20s} {L:6.1f} mm")
 scene["pigtail_lengths_mm"] = {k: round(v, 2) for k, v in lengths.items()}
 
 # ================================================================ top plate
@@ -500,6 +554,60 @@ for k, (x, y) in enumerate(TOP_SCREWS):
     screw("pan", "M2", 4, (x, y, TOP_Z1), "+Z", C_FAST, f"Screw M2x4 (top plate #{k + 1})", into="wall boss", grip=1.0)
 for i, (xa, xb) in enumerate(SILICONE_RAILS):
     rbox(f"Silicone rail {i + 1}", xa, 12, TOP_Z1, xb, D - 12, TOP_Z1 + RAIL_T, M["silicone"], C_TOP, bevel=0.2)
+
+# ================================================================ USB wiring (flat flex under the top plate)
+M["ffc"] = mat("FFC (polyimide, copper)", (0.42, 0.20, 0.03), 0.1, 0.3, coat=0.6)
+M["fpc_conn"] = mat("FPC connector (LCP)", (0.85, 0.83, 0.78), 0.0, 0.5)
+Z_FFC = {"x": TOP_Z0 - FFC["t"] / 2 - 0.01, "y": TOP_Z0 - 1.5 * FFC["t"] - 0.03}   # upper layer: x-runs, lower: y-runs
+Z_FPC = PCB_TOP + 0.45
+
+
+def ffc_route(name, pts):
+    cw, cd, ch = FFC["conn"]
+    unit = []
+    for (xa, ya), (xb, yb) in zip(pts, pts[1:]):
+        L = math.hypot(xb - xa, yb - ya)
+        unit.append(((xb - xa) / L, (yb - ya) / L))
+    lay = ["x" if abs(dx) > abs(dy) else "y" for dx, dy in unit]
+    for end, (cx, cy), (dx, dy) in (("A", pts[0], unit[0]), ("B", pts[-1], unit[-1])):
+        w2, d2 = (cd / 2, cw / 2) if abs(dx) > abs(dy) else (cw / 2, cd / 2)
+        rbox(f"FFC connector {end} ({name})", cx - w2, cy - d2, PCB_TOP, cx + w2, cy + d2, PCB_TOP + ch, M["fpc_conn"], C_FFC, bevel=0.1)
+    (x0, y0), (dx0, dy0) = pts[0], unit[0]
+    path = [(x0, y0, Z_FPC), (x0 + dx0 * FFC["drop"], y0 + dy0 * FFC["drop"], Z_FFC[lay[0]])]
+    for k in range(1, len(pts) - 1):
+        (cx, cy), (dx, dy) = pts[k], unit[k]
+        path += [(cx, cy, Z_FFC[lay[k - 1]]), (cx + dx * 1.2, cy + dy * 1.2, Z_FFC[lay[k]])]
+    (xn, yn), (dxn, dyn) = pts[-1], unit[-1]
+    path += [(xn - dxn * FFC["drop"], yn - dyn * FFC["drop"], Z_FFC[lay[-1]]), (xn, yn, Z_FPC)]
+    # flat ribbon: one thin slab per segment, width kept horizontal, so it never twists
+    slabs = []
+    for (xa, ya, za), (xb, yb, zb) in zip(path, path[1:]):
+        L = math.hypot(xb - xa, yb - ya)
+        px, py = -(yb - ya) / L * FFC["w"] / 2, (xb - xa) / L * FFC["w"] / 2
+        h = FFC["t"] / 2
+        bm = bmesh.new()
+        q = [(xa + px, ya + py), (xa - px, ya - py), (xb - px, yb - py), (xb + px, yb + py)]
+        zs = [za, za, zb, zb]
+        lo = [bm.verts.new(((x) * MM, (y) * MM, (z - h) * MM)) for (x, y), z in zip(q, zs)]
+        hi = [bm.verts.new(((x) * MM, (y) * MM, (z + h) * MM)) for (x, y), z in zip(q, zs)]
+        bm.faces.new(lo[::-1])
+        bm.faces.new(hi)
+        for i in range(4):
+            j = (i + 1) % 4
+            bm.faces.new((lo[i], lo[j], hi[j], hi[i]))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+        me = bpy.data.meshes.new("ffc")
+        bm.to_mesh(me)
+        bm.free()
+        ob = bpy.data.objects.new("ffc", me)
+        C_FFC.objects.link(ob)
+        slabs.append(ob)
+    ffc = join(slabs, f"FFC ({name})")
+    ffc.data.materials.append(M["ffc"])
+
+
+for rname, rpts in FFC_ROUTES:
+    ffc_route(rname, rpts)
 
 # ================================================================ mount: jaws, rear stops, front latches
 JAW_Z1 = {}
@@ -576,7 +684,8 @@ def latch(side):
     pcx = (pa + pb) / 2
     pcy = (pya + pyb) / 2
     cuts = [rbox("cut", pa - 0.05, pya - 0.05, 1.0, pb + 0.05, 0.5, LATCH_TOP + 1, None, C_STAGE)]   # pawl pocket
-    cuts.append(cyl("cut", pcx, pcy, L["pin_z"], 0.5, 10.0, None, C_STAGE, axis="X", verts=16))      # pin bore
+    pin_z = PAWL_TOP - PAWL_H + 2.1                                                                   # pawl up: pin at slot bottom
+    cuts.append(cyl("cut", pcx, pcy, pin_z, 0.5, 10.0, None, C_STAGE, axis="X", verts=16))           # pin bore
     for (sxx, sz) in L["screws"]:
         x = sx(sxx)
         cuts.append(cyl("cut", x, L["y0"] + 1.0, sz, 2.1, 2.4, None, C_STAGE, axis="Y", verts=24))   # counterbore
@@ -591,7 +700,7 @@ def latch(side):
     slot = rbox("cut", pa - 1, pcy - 0.525, z_bot + 1.6, pb + 1, pcy + 0.525, z_bot + 6.2, None, C_STAGE)
     cut_many(pawl, [ramp, slot])
     link(pawl, C_MOUNT)
-    parts.dowel(f"Latch pin ({tag})", 1.0, 8.0, (pcx, pcy, L["pin_z"]), "+X", C_MOUNT, M["steel"])
+    parts.dowel(f"Latch pin ({tag})", 1.0, 8.0, (pcx, pcy, pin_z), "+X", C_MOUNT, M["steel"])
     sp = L["spring"]
     parts.spring(f"Latch spring ({tag})", sp["od"], sp["wire"], 1.0, z_bot, sp["turns"], (pcx, pcy), C_MOUNT, M["spring"])
     for k, (sxx, sz) in enumerate(L["screws"]):
@@ -658,7 +767,7 @@ for k, (x, y) in enumerate(MAC_STUDS):
     tag = ("front " if y < D / 2 else "rear ") + ("left" if x < W / 2 else "right")
     parts.stud_screw(f"Stud screw ({tag})", x, y, TOP_Z1, MAC_Z, STUD, STOCK_SCREW["front" if y < D / 2 else "rear"],
                      C_MAC, M, C_STAGE)
-    screw("csk", "M2", STUD_BOLT_LEN, (x, y, 0.0), "-Z", C_FAST, f"Screw M2x{STUD_BOLT_LEN} countersunk (stud bolt {tag})",
+    screw("csk", "M2", STUD_BOLT_LEN, (x, y, STUD_BOLT_RECESS), "-Z", C_FAST, f"Screw M2x{STUD_BOLT_LEN} countersunk (stud bolt {tag})",
           into="stud screw (stainless)", grip=TOP_Z1, min_ratio=MIN_ENGAGEMENT_STEEL)
 for o in C_MAC.objects:
     if o.type == "MESH" and o.name.startswith(("MacBook base", "Mac foot", "Stud screw")):
@@ -742,6 +851,20 @@ nurbs_cable("USB-C PD 3.1 cable (240 W, from the charger)",
 
 for name, y in LANES.items():         # nut driver / mating SMA plug around every bulkhead
     parts.envelope_cyl(f"Keep-out SMA access ({name})", (W + 0.6, y, Z_SMA), "+X", 5.6, 22.0, C_KEEP, M["keepout"])
+for name, x in FRONT_LANES.items():
+    parts.envelope_cyl(f"Keep-out SMA access ({name})", (x, -0.6, Z_SMA), "-Y", 5.6, 22.0, C_KEEP, M["keepout"])
+
+# what plugs into each bulkhead (shown in the antennas render only)
+C_ANT = coll("Antennas")
+out_len = parts.SMA["out_len"]
+for name, spec in ANTENNAS.items():
+    if name in LANES:
+        at, axis, side = (W + out_len, LANES[name], Z_SMA), "+X", (0, 1, 0)
+    else:
+        at, axis, side = (FRONT_LANES[name], -out_len, Z_SMA), "-Y", (1, 0, 0)
+    kind = spec[0]
+    length = spec[1] if kind == "whip" else 0
+    parts.sma_antenna(f"Antenna ({name})", at, axis, kind, length, C_ANT, M, C_STAGE, cable_dir=side)
 for pname, yc in USBC_PORTS[:1]:      # USB-C plug overmould at the charger port (the others are bridged)
     rbox(f"Keep-out USB-C plug ({pname})", -30, yc - 6.3, USBC_ZC - 3.4, -0.2, yc + 6.3, USBC_ZC + 3.4, M["keepout"], C_KEEP)
 for pname, side, py, _, (ow, oh) in MAC_PORTS:   # plugs in the Mac's own ports
@@ -772,6 +895,27 @@ fzb = [fz_obj.matrix_world @ mathutils.Vector(v) for v in fz_obj.bound_box]
 fz_obj.location.x += -60 * MM - min(v.x for v in fzb)
 fz_obj.location.y += 70 * MM - min(v.y for v in fzb)
 fz_obj.location.z += -2 * MM - min(v.z for v in fzb)
+# Flipper One B.1 enclosure (official CAD, CERN-OHL-P): sets the size of the Flipper One bay
+before = set(bpy.data.objects)
+bpy.ops.import_scene.gltf(filepath=FLIPPER_ONE_GLB)
+f1 = [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
+for o in [o for o in bpy.data.objects if o not in before and o.type != "MESH"]:
+    pass
+for o in f1:
+    mw = o.matrix_world.copy()
+    o.parent = None
+    o.matrix_world = mw
+for o in [o for o in bpy.data.objects if o not in before and o.type != "MESH"]:
+    bpy.data.objects.remove(o, do_unlink=True)
+f1_obj = join(f1, "Flipper One B.1 enclosure (official model)")
+link(f1_obj, C_REF)
+bpy.context.view_layer.update()
+bb = [f1_obj.matrix_world @ mathutils.Vector(v) for v in f1_obj.bound_box]
+ext = [max(v[i] for v in bb) - min(v[i] for v in bb) for i in range(3)]
+print("Flipper One enclosure extents mm:", [round(e / MM, 1) for e in ext])
+f1_obj.location.x += -225 * MM - min(v.x for v in bb)
+f1_obj.location.y += -15 * MM - min(v.y for v in bb)
+f1_obj.location.z += -2 * MM - min(v.z for v in bb)
 
 # ================================================================ stage
 cyl("Floor", W / 2, D / 2, -FOOT_H - 0.5, 2500, 1.0, M["floor"], C_STAGE, verts=64)

@@ -47,8 +47,8 @@ from sled_config import (  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 MM = 0.001
 EPS = 0.03  # mm
-CHECKED = ["Sled chassis", "Thermal", "Boards", "RF pigtails", "Top plate", "Fasteners", "Mount", "Bridge"]
-RF_PREFIXES = ("Pigtail", "MHF4", "SMA bulkhead")
+CHECKED = ["Sled chassis", "Thermal", "Boards", "RF pigtails", "Top plate", "Fasteners", "Mount", "Bridge", "USB wiring"]
+RF_PREFIXES = ("Pigtail", "MHF4", "SMA bulkhead", "FFC")
 
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / "model/osint_sled.blend"))
 dg = bpy.context.evaluated_depsgraph_get()
@@ -157,7 +157,7 @@ print(f"1. collision check: {len(parts) + len(mac)} parts, {n_pairs} close pairs
 # 2: envelope (parts that live inside the sled)
 OUTSIDE = ("Top plate", "Silicone rail", "Sled foot", "SMA bulkhead", "Exhaust deflector")
 for p in parts:
-    inside = p.coll in ("Sled chassis", "Thermal", "Boards", "RF pigtails") and not p.name.startswith(OUTSIDE)
+    inside = p.coll in ("Sled chassis", "Thermal", "Boards", "RF pigtails", "USB wiring") and not p.name.startswith(OUTSIDE)
     inside |= p.coll == "Fasteners" and ("HackRF" in p.name or "M2x5" in p.name)
     if inside and p.hi.z / MM > TOP_Z0 + 1e-3:
         fail(f"{p.name} reaches z={p.hi.z / MM:.2f} mm, above the top plate underside ({TOP_Z0} mm)")

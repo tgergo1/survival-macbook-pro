@@ -24,8 +24,8 @@ MHF4_MATED_H = 1.2           # receptacle + plug, mated (Hirose/I-PEX spec ~1.2 
 CABLE_GAP = 0.02             # modelling gap so stacked cables don't touch
 Z_LOW = PCB_TOP + COAX_R + CABLE_GAP              # cables running along x
 Z_HIGH = Z_LOW + COAX_D + 2 * CABLE_GAP           # cables running along y
-TOP_CLEAR = 2.4              # PCB back -> underside of top plate
-TOP_Z0 = PCB_TOP + TOP_CLEAR # 10.8
+TOP_CLEAR = 2.6              # PCB back -> underside of top plate: coax crossings + the USB flat-flex layer
+TOP_Z0 = PCB_TOP + TOP_CLEAR # 11.0
 TOP_Z1 = TOP_Z0 + 1.0        # 1 mm top plate
 assert Z_HIGH + COAX_R < TOP_Z0, "coax crossings must clear the top plate"
 assert PCB_TOP + MHF4_MATED_H < TOP_Z0
@@ -68,38 +68,55 @@ HEAT_PIPES = [
 ]
 
 # ------------------------------------------------------------------ boards
-# KrakenSDR: bare board modelled from the official enclosure drawing
-# (167.2 x 104.5 mm body, 5 channels on 27.8 mm pitch).
-KRAKEN_PITCH = 27.8
-KX = [32.9 + i * KRAKEN_PITCH for i in range(5)]
-KRAKEN_UFL_Y = 216.0
+# KrakenSDR: bare board from KrakenRF's official enclosure drawing
+# (github.com/krakenrf/krakensdr_docs, drawings/KrakenSDR.Enclosure.Drawing.NEW.png):
+# 167.2 x 104.5 mm body; SMA centres at -57.5, -29.6, -1.7, +26.3, +54.2 mm from the
+# centre line (CH4 ... CH0, a uniform 27.9 mm pitch); board screws on a
+# 162.6 x 88.8 mm pattern, four per side (21.5 and 45.7 mm steps). The board is
+# sized from that pattern with 3 mm edge margins.
+KRAKEN_PITCH = 27.9
+KRAKEN_RECT = (6.0, 122.0, 174.6, 216.8)
+KRAKEN_CX = (KRAKEN_RECT[0] + KRAKEN_RECT[2]) / 2
+KRAKEN_CY = (KRAKEN_RECT[1] + KRAKEN_RECT[3]) / 2
+KX = [KRAKEN_CX + 54.2 - i * KRAKEN_PITCH for i in range(5)]     # CH0 (right) ... CH4 (left)
+KRAKEN_UFL_Y = 213.0
+KRAKEN_HOLES = [(KRAKEN_CX + sx * 81.3, KRAKEN_CY + dy) for sx in (-1, 1) for dy in (-44.4, -22.9, 22.8, 44.4)]
 
 # chips/cans: (cx, cy, w, d, h) hanging below the PCB; ufl: connector names -> (x, y)
 BOARDS = [
-    dict(name="KrakenSDR (bare, from official drawing)", rect=(6, 120, 171, 220), mat="pcb_black",
+    dict(name="KrakenSDR (bare, from official drawing)", rect=KRAKEN_RECT, mat="pcb_black", holes=KRAKEN_HOLES,
+         hole_washer=True,
          chips=[(88.5, 150, 9, 9, 1.0), (40, 140, 6, 6, 1.0), (140, 140, 5, 5, 1.0)],
-         cans=[(x, 206, 21, 19, 3.4) for x in KX],
+         cans=[(x, 203, 21, 19, 3.4) for x in KX],
          ufl={f"Kraken CH{i}": (x, KRAKEN_UFL_Y) for i, x in enumerate(KX)}),
-    dict(name="USB 2.0 hub (low-rate devices)", rect=(175, 114, 295, 134),
+    dict(name="USB 2.0 hub (low-rate devices)", rect=(175, 114, 288, 134), holes=[(178, 117), (272, 117), (186, 131), (258, 131)],
          chips=[(205, 124, 7, 7, 0.9), (255, 124, 5, 5, 0.9)]),
-    dict(name="Flipper One (bay placeholder, board TBD)", rect=(6, 56, 146, 118), mat="pcb_purple",
+    # Flipper One: bay sized from Flipper's official B.1 enclosure CAD (154.9 x 67.1 x 49.3 mm overall);
+    # the mainboard itself is not published as a 3D file yet.
+    dict(name="Flipper One (bay from official B.1 enclosure)", rect=(6, 56, 146, 118), mat="pcb_purple",
          holes=[(9, 59), (139, 58.6), (9, 115), (141, 95)],
          chips=[(71, 85, 15, 15, 1.2), (100, 77, 12, 10, 1.0), (100, 95, 12, 10, 1.0), (125, 72, 30, 22, 1.4)],
-         ufl={"Flipper One LTE": (136, 100), "Flipper One GNSS": (126, 100)}),
-    dict(name="Airspy HF+ Discovery (bare)", rect=(175, 64, 230, 104),
-         holes=[(178, 71.5), (222, 71.5), (178, 99), (219, 99)],
-         chips=[(202, 84, 7, 7, 0.9)], cans=[(190, 84, 14, 16, 2.0)], ufl={"Airspy HF+": (226, 96)}),
+         ufl={"Flipper One LTE": (136, 100), "Flipper One GNSS": (126, 100), "Flipper One LTE div": (131, 113)}),
+    # Airspy HF+ Discovery: board measured from RigPix's inside photos, scaled by the
+    # ATSAM3U1C's 14 x 14 mm LQFP-100 body: about 58 x 42 mm, four ~3.2 mm corner holes
+    # ~4.5 mm in, SMA on a short edge (fits the published 60 x 45 x 10 mm case).
+    dict(name="Airspy HF+ Discovery (bare)", rect=(175, 64, 233, 106), hole_washer=True,
+         holes=[(179.5, 68.5), (228.5, 68.5), (179.5, 101.5), (228.5, 101.5)],
+         chips=[(216, 80, 14, 14, 1.4)], cans=[(196, 87, 26, 24, 2.0)], ufl={"Airspy HF+": (183, 85)}),
     dict(name="Wi-Fi adapter (bare)", rect=(240, 80, 310, 105),
-         chips=[(270, 92, 8, 8, 0.9)], ufl={"Wi-Fi": (305, 92)}),
+         chips=[(270, 92, 8, 8, 0.9)], ufl={"Wi-Fi A": (305, 92.65), "Wi-Fi B": (300, 100)}),
+    # Proxmark3 RDV4: 87 x 54 mm board (Lab401 spec)
     dict(name="Proxmark3 RDV4 (bare)", rect=(175, 6, 261, 60), mat="pcb_black",
          chips=[(205, 40, 14, 14, 1.4), (240, 40, 8, 8, 1.0)]),
-    dict(name="Flipper Zero (bare-board bay)", rect=(264, 10, BOARD_MAX_X, 46),
-         chips=[(296, 28, 10, 10, 1.0), (326, 28, 6, 6, 1.0)]),
-    dict(name="BLE sniffer nRF52840", rect=(296, 120, BOARD_MAX_X, 138),
-         holes=[(299, 127), (333, 127)],
-         chips=[(316, 129, 7, 7, 0.9)]),
-    dict(name="LoRa node nRF52840 + SX1262", rect=(304, 150, BOARD_MAX_X, 173),
-         chips=[(320, 161, 8, 8, 0.9)], ufl={"LoRa": (330, 168)}),
+    dict(name="Flipper Zero (bare-board bay)", rect=(264, 18, BOARD_MAX_X, 54), holes=[(267, 21), (333, 21), (267, 44), (333, 44)],
+         chips=[(296, 36, 10, 10, 1.0), (326, 36, 6, 6, 1.0)], ufl={"Flipper Zero Sub-GHz": (272, 41)}),
+    # BLE sniffer: Nordic nRF52840 Dongle (PCA10059), 46 x 15.24 mm; no mounting holes, held by a
+    # VHB pad on its pocket wall. Its PCB antenna needs re-working to a pigtail inside the shielded sled.
+    dict(name="BLE sniffer nRF52840 Dongle (PCA10059)", rect=(290, 121, BOARD_MAX_X, 136.24), holes=[],
+         chips=[(316, 128.6, 7, 7, 0.9)], ufl={"BLE": (296, 128.6)}),
+    # LoRa: RAKwireless RAK4631 core (nRF52840 + SX1262, 20 x 30 mm) on a RAK19003 mini base (35 x 30 mm)
+    dict(name="LoRa node RAK4631 on RAK19003", rect=(301, 140, BOARD_MAX_X, 170),
+         chips=[(318, 155, 20, 14, 2.0)], ufl={"LoRa": (326, 152)}),
     # Dock board: Thunderbolt device controller with PCIe out to two extra xHCI
     # controllers, so the HackRF and the KrakenSDR each get their own USB 2.0
     # root (480 Mbit/s each), plus the single-cable power path (see POWER):
@@ -132,7 +149,7 @@ USBC_PORTS = [("USB-C PD 3.1 in (the one cable, up to 240 W)", 20.0),
 USBC = dict(x0=0.3, w=8.94, h=3.26)     # opening 0.3 mm behind the wall face
 
 # Pedestals: (name, x0, y0, x1, y1). Heights come from the measured chip depth.
-KRAKEN_BAR = ("KrakenSDR isothermal bar", KX[0] - 11.5, 196, KX[-1] + 11.5, 216)
+KRAKEN_BAR = ("KrakenSDR isothermal bar", min(KX) - 11.5, 192, max(KX) + 11.5, 214)
 PEDESTALS = [
     KRAKEN_BAR,                                   # one bar under all 5 tuner cans
     ("Flipper One SoC", 63, 77, 79, 93),
@@ -149,16 +166,26 @@ PEDESTALS_PLATE_ONLY = {"Dock TB controller", "Dock 28 V buck MOSFETs"}     # al
 # distinct y for every x-run means crossings are always one layer over the other.
 # KrakenSDR lanes step by the channel pitch, so all 5 coherent channels have
 # exactly the same Manhattan length (phase matched by construction).
-KRAKEN_LANE0 = 162.0
-LANES = {f"Kraken CH{i}": KRAKEN_LANE0 - i * KRAKEN_PITCH for i in range(5)}
-LANES.update({
-    "LoRa": 178.0,
-    "HackRF": 148.0,
-    "Airspy HF+": 120.0,
-    "Wi-Fi": 92.0,
-    "Flipper One LTE": 64.7,
+KRAKEN_LANE0 = 50.8         # CH0 (rightmost on the board) takes the lowest lane
+LANES = {f"Kraken CH{i}": KRAKEN_LANE0 + i * KRAKEN_PITCH for i in range(5)}
+LANES.update({               # the others sit halfway between the Kraken lanes
+    "LoRa": 176.3,
+    "HackRF": 148.45,
+    "Airspy HF+": 120.55,
+    "Wi-Fi A": 92.65,
+    "Flipper One LTE": 64.75,
     "Flipper One GNSS": 36.8,
 })
+# Four more SMA bulkheads on the front wall, right of the Proxmark (x of each):
+# each pigtail runs along x on the lower layer, bends once, then along -y on
+# the upper layer and drops into the bulkhead.
+FRONT_LANES = {
+    "Flipper Zero Sub-GHz": 272.0,
+    "BLE": 286.0,
+    "Wi-Fi B": 300.0,
+    "Flipper One LTE div": 314.0,
+}
+FRONT_DESCENT_Y = 18.5       # S-bend down into the front bulkheads starts here
 KRAKEN_LENGTH_TOL = 0.5      # mm, max spread across the 5 Kraken pigtails
 
 # ------------------------------------------------------------------ power budget (estimates)
@@ -250,7 +277,7 @@ SILICONE_RAILS = [(16.0, 42.0), (W - 42.0, W - 16.0)]       # x ranges; the Mac'
 WALL_BOSS_R = 2.0            # bosses milled inside the perimeter wall, tapped M2
 TOP_SCREWS = [               # ISO 14583 M2x4 pan head through the top plate into wall bosses
     (4.0, 100.0), (4.0, 150.0),
-    (60.0, 4.0), (120.0, 4.0), (172.0, 4.0), (222.0, 4.0), (300.0, 4.0),
+    (60.0, 4.0), (120.0, 4.0), (172.0, 4.0), (222.0, 4.0), (293.0, 4.0),
     (W - 4.0, 57.75), (W - 4.0, 113.2), (W - 4.0, 141.1), (W - 4.0, 170.0),
 ]
 BOSS_R = 2.2                 # board standoff bosses (milled), tapped M2 / M2.5
@@ -267,12 +294,12 @@ MIN_ENGAGEMENT = 1.5         # x nominal diameter of thread engaged in aluminium
 # pentalobe head, each has a 4 mm stainless body that bridges the 2.6 mm gap to
 # the sled's top plate and carries an M2 female thread. An M2 countersunk screw
 # from under the sled, through a column milled in the base, pulls the stud down
-# onto the top plate. Screw POSITIONS are estimates (Apple publishes none):
-# measure your Mac's corner screws and update these before machining.
+# onto the top plate. Screw positions are measured from Apple's underside photo;
+# check them (and the thread) against your own Mac before machining.
 MAC_STUDS = [  # (x, y) of the four corner screws, measured from Apple's bottom-case photo
     (10.3, 10.4), (W - 10.3, 10.4), (10.3, D - 10.8), (W - 10.3, D - 10.8),
 ]
-STUD = dict(body_d=4.0, flats=3.5, thread_depth=2.2)
+STUD = dict(body_d=4.0, flats=3.5, thread_depth=2.4)
 # The stock bottom-case screws are SHOULDER screws: a flat countersunk head, a
 # smooth shoulder and a short thread at the tip. Measured from Apple's part
 # photos (support.apple.com/100570, 923-06866 front / 923-06867 rear), scaled
@@ -287,7 +314,8 @@ STOCK_SCREW = {
                  pitch=0.37, apple_part="923-06867 (silver) / 923-06869 (space gray)"),
 }
 COLUMN_R = 2.5               # solid column milled in the base under each stud, M2 clearance through it
-STUD_BOLT_LEN = 14           # ISO 14581 M2x14 countersunk, flush in the base's underside
+STUD_BOLT_LEN = 14           # M2x14 countersunk (ISO 14581 / ISO 10642 style), from under the base
+STUD_BOLT_RECESS = 0.4       # head 0.4 mm up a counterbore in the base's underside
 SLED_FEET = [(26.0, 14.0), (W - 26.0, 14.0), (26.0, D - 14.0), (W - 26.0, D - 14.0)]
 MIN_ENGAGEMENT_STEEL = 1.0   # x d, thread engaged in a stainless female thread
 
@@ -321,9 +349,48 @@ POWER = dict(
 BRIDGE = dict(
     x0=-5.6, x1=-0.3,                  # 5.3 mm thick, 0.3 mm off the sled wall and the Mac's side
     y0=26.6, y1=220.0,                 # from just behind the charger port to just past the MagSafe port
-    z_low=(2.5, 12.0),                 # runs under the Mac's side intake vents, clear of their air path
+    z_low=(2.5, 12.2),                 # runs under the Mac's side intake vents, clear of their air path
     step_y=(152.0, 160.0),             # steps up after the vents end (150.5 mm)
-    z_high=(17.6, 27.0),               # above the rear jaw (17.4) up to the top of the Mac's base
+    z_high=(17.8, 27.2),               # above the rear jaw (MAC_Z + 3.0) up to the top of the Mac's base
     windows=["Headphone", "Thunderbolt 4 L1"],
     screw_y=(70.0, 130.0), screw_z=5.0, cbore_x=-3.4,   # two M2x8 socket screws into the left wall
 )
+
+# ------------------------------------------------------------------ USB wiring: flat flex under the top plate
+# Every board gets USB 2.0 over a 6-way, 0.5 mm-pitch FFC (VBUS, D+, D-, 3 x GND),
+# 3.5 mm wide and 0.1 mm thick, bonded to the underside of the top plate. Runs
+# along x sit on the upper FFC layer and runs along y on the lower one, so
+# crossings never stack on one layer. At each end the FFC drops into a 0.9 mm-high
+# 0.5 mm-pitch back-flip FPC connector on the board's back.
+FFC = dict(w=3.5, t=0.1, conn=(6.0, 4.0, 0.9), drop=4.0)
+FFC_ROUTES = [   # name, plan polyline (first point = upstream connector, last = downstream connector)
+    ("Dock -> KrakenSDR", [(25, 22), (25, 128)]),
+    ("Dock -> HackRF", [(45, 22), (45, 150), (186, 150)]),
+    ("Dock -> USB hub", [(65, 22), (65, 124), (180, 124)]),
+    ("Hub -> Airspy HF+", [(195, 128), (195, 88)]),
+    ("Hub -> Flipper One", [(207, 128), (207, 74), (16, 74)]),
+    ("Hub -> Proxmark3", [(219, 128), (219, 20)]),
+    ("Hub -> LoRa", [(231, 128), (231, 158), (305, 158)]),
+    ("Hub -> Wi-Fi", [(250, 128), (250, 88)]),
+    ("Hub -> Flipper Zero", [(267, 128), (267, 32)]),
+    ("Hub -> BLE dongle", [(280, 128), (300, 128)]),
+]
+
+# ------------------------------------------------------------------ antennas (what plugs into each SMA)
+# type: whip = folding dipole on an SMA hinge, length in mm; cable = SMA plug and a coax
+# run leaving the sled (to an array, a loop or a roof antenna); patch = active GNSS puck on a cable
+ANTENNAS = {
+    **{f"Kraken CH{i}": ("cable", "KrakenTenna set: 5 length-matched RG58 runs to the array") for i in range(5)},
+    "HackRF": ("whip", 200.0, "Great Scott Gadgets ANT500 telescopic, 75 MHz-1 GHz (collapsed)"),
+    "Airspy HF+": ("cable", "HF loop or long wire (e.g. YouLoop) on a coax run"),
+    "Wi-Fi A": ("whip", 108.0, "2.4/5 GHz dual-band dipole"),
+    "Wi-Fi B": ("whip", 108.0, "2.4/5 GHz dual-band dipole (second MIMO chain)"),
+    "BLE": ("whip", 108.0, "2.4 GHz dipole"),
+    "Flipper One LTE": ("whip", 190.0, "LTE wideband dipole, main"),
+    "Flipper One LTE div": ("whip", 190.0, "LTE wideband dipole, diversity"),
+    "Flipper One GNSS": ("patch", "active GNSS patch on 3 m RG174"),
+    "LoRa": ("whip", 170.0, "868/915 MHz dipole"),
+    "Flipper Zero Sub-GHz": ("whip", 190.0, "433 MHz dipole (CC1101, 300-928 MHz)"),
+}
+# second polycarbonate window, under the Flipper Zero's NFC / 125 kHz coils
+FZ_WINDOW = (272.0, 28.0, 318.0, 50.0)
