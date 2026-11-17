@@ -10,8 +10,8 @@ A ~12 mm machined-aluminium sled that sits under a 16" MacBook Pro and holds a f
 
 ## Renders
 
-### Seen from the left: the one charger cable, the MagSafe 3 jumper and the Thunderbolt jumper
-![Left side with the Thunderbolt cable](renders/render_hero_left.png)
+### Seen from the left: the one charger cable and the rigid bridge to the Mac's MagSafe and Thunderbolt ports
+![Left side with the bridge](renders/render_hero_left.png)
 
 ### The Mac lifted off: a stud screw in place of a bottom-case screw, the bolt hole in the top plate, the three dock ports, a front stop
 ![Mac partly inserted](renders/render_insert.png)
@@ -120,7 +120,7 @@ The screw positions are **measured** from Apple's own photo of the underside (se
 | M2×5 pan head, Torx T6 | ISO 14583, A2 | 42 | Every board into its standoff bosses (3.1 to 3.4 mm of thread engaged) |
 | M2×4 pan head, Torx T6 | ISO 14583, A2 | 11 | Top plate into the wall bosses (3.0 mm engaged) |
 | M2×6 countersunk, Torx T6 | ISO 14581, A2 | 7 | Jaws through the top plate into the wall bosses (3.8 mm engaged) |
-| M2×8 socket head | ISO 4762, A2 | 4 | Front-stop blocks into the front wall and a boss behind it (3.7 mm engaged) |
+| M2×8 socket head | ISO 4762, A2 | 6 | Front-stop blocks into the front wall and the bridge into the left wall, each into a boss behind it (3.7 to 4.6 mm engaged) |
 | M2×14 countersunk, Torx T6 | ISO 14581, A2 | 4 | From under the sled into the Mac's stud screws (2.2 mm engaged) |
 | Stud screw | Custom, A2; stock MacBook thread and length, M2 female | 4 | Replace the Mac's four corner bottom-case screws |
 | M2 washer | DIN 433 | 4 | HackRF (its mounting holes are 2.75 mm) |
@@ -133,13 +133,15 @@ All screws thread into tapped holes in 6061: milled bosses inside the perimeter 
 
 ## One-cable power
 
-One USB-C PD 3.1 charger plugs into the sled's left edge. Nothing else plugs in from outside: the sled powers itself and charges the Mac through two short jumpers on the same side.
+One USB-C PD 3.1 charger plugs into the sled's left edge. Nothing else plugs in from outside: the sled powers itself and connects to the Mac through one slim rigid **bridge** on the same side.
+
+**The bridge** is a 5.3 mm thick black-anodised 6061 shell around a rigid-flex PCB. It has four plug tips along one face: two USB-C plugs into the sled's EPR output and Thunderbolt ports, a USB-C plug into the Mac's rear-left Thunderbolt port, and a MagSafe 3 plug into the Mac's MagSafe port. All four point the same way, so it pushes on sideways in one move after the Mac is bolted down. Two ISO 4762 M2×8 screws hold it into bosses behind the sled's left wall. It runs low (below 12 mm) under the Mac's side intake vents so their air path stays open, and steps up behind them to the Mac's port height. It has windows for the headphone jack and the front Thunderbolt port, which stay usable. Nobody sells a third-party MagSafe 3 plug, so that plug and its contacts come from an Apple USB-C to MagSafe 3 cable. The design check treats the bridge like every other part: no collisions, and the plug tips sit in their receptacles.
 
 | Port (left edge, front to back) | Role |
 |---|---|
 | USB-C PD 3.1 in | **The one cable.** An EPR sink controller asks the charger for up to 48 V / 5 A (240 W). |
-| USB-C EPR out → Apple USB-C to MagSafe 3 cable | A 48 → 28 V buck and an EPR source controller charge the Mac at up to 140 W. The 2021-22 16" charges at 140 W only over MagSafe; its Thunderbolt ports top out at 100 W. |
-| Thunderbolt → Mac | Data. With no charger connected, it also back-feeds the sled from the Mac (Apple's ports supply 15 W at 5 V). |
+| USB-C EPR out → bridge → MagSafe 3 | A 48 → 28 V buck and an EPR source controller charge the Mac at up to 140 W. The 2021-22 16" charges at 140 W only over MagSafe; its Thunderbolt ports top out at 100 W. |
+| Thunderbolt → bridge → Mac Thunderbolt | Data. With no charger connected, it also back-feeds the sled from the Mac (Apple's ports supply 15 W at 5 V). |
 
 **How the power is shared.** The 48 → 5 V buck runs the sled first. The dock then offers the Mac the biggest USB PD contract that fits in what is left, keeping 10 % of the charger's rating unused. It renegotiates whenever the sled's load or the charger changes, so the charger is never overdrawn. Each board sits behind its own load switch. When the budget is short, the dock sheds boards in a fixed order (KrakenSDR first, then the Flipper One's LTE, then the HackRF). An ideal-diode OR picks the 5 V source: the buck when a charger is in, the Mac's Thunderbolt port when it is not. `scripts/power_plan.py` computes this, and the design check runs it:
 

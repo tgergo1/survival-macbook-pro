@@ -316,3 +316,14 @@ POWER = dict(
     shed_order=["KrakenSDR (5 tuners, onboard hub)", "Flipper One (est., LTE active)", "HackRF (RX)",
                 "Wi-Fi adapter", "Airspy HF+ Discovery", "Proxmark3 RDV4"],
 )
+
+# ------------------------------------------------------------------ left-side bridge (replaces both jumper cables)
+BRIDGE = dict(
+    x0=-5.6, x1=-0.3,                  # 5.3 mm thick, 0.3 mm off the sled wall and the Mac's side
+    y0=26.6, y1=220.0,                 # from just behind the charger port to just past the MagSafe port
+    z_low=(2.5, 12.0),                 # runs under the Mac's side intake vents, clear of their air path
+    step_y=(152.0, 160.0),             # steps up after the vents end (150.5 mm)
+    z_high=(17.6, 27.0),               # above the rear jaw (17.4) up to the top of the Mac's base
+    windows=["Headphone", "Thunderbolt 4 L1"],
+    screw_y=(70.0, 130.0), screw_z=5.0, cbore_x=-3.4,   # two M2x8 socket screws into the left wall
+)

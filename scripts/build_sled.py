@@ -31,7 +31,7 @@ from sled_config import (  # noqa: E402
     MHF4_RECEPT_H, PAD_GAP, PAD_T, PCB_T, PCB_TOP, PCB_Z0, PEDESTALS, PLENUM, RAIL_T,
     REAR_RETURN, SIDE_INTAKE, SILICONE_RAILS, SMA_FERRULE_X, SMA_HOLE_FLAT, SMA_HOLE_R, TOP_SCREWS,
     TOP_Z0, TOP_Z1, USBC, USBC_PORTS, W, WALL_BOSS_R, WALL_T, Z_HIGH, Z_LOW, Z_SMA,
-    COLUMN_R, MAC_STUDS, MIN_ENGAGEMENT_STEEL, SLED_FEET, STUD, STUD_BOLT_LEN, MAC_BOTTOM_SCREWS, MAC_VENTS, STOCK_SCREW,
+    BRIDGE, COLUMN_R, MAC_STUDS, MIN_ENGAGEMENT_STEEL, SLED_FEET, STUD, STUD_BOLT_LEN, MAC_BOTTOM_SCREWS, MAC_VENTS, STOCK_SCREW,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,6 +59,7 @@ C_CABLES = coll("RF pigtails")
 C_TOP = coll("Top plate")
 C_FAST = coll("Fasteners")
 C_MOUNT = coll("Mount")
+C_BRIDGE = coll("Bridge")
 C_MAC = coll("MacBook Pro 16")
 C_EXT = coll("External cables")
 C_KEEP = coll("Keep-out envelopes")
@@ -141,6 +142,8 @@ for side in "LR":
         LATCH_SCREW_PTS.append((side, sx if side == "L" else W - sx, sz))
 bosses = [cyl("boss", x, y, (wall_z0 + wall_z1) / 2, WALL_BOSS_R, wall_z1 - wall_z0, None, C_STAGE, verts=24)
           for x, y in TOP_SCREWS + [(x, y) for _, x, y in JAW_SCREW_PTS]]
+for y in BRIDGE["screw_y"]:     # horizontal bosses behind the left wall for the bridge screws
+    bosses.append(cyl("boss", WALL_T + 1.4, y, BRIDGE["screw_z"], WALL_BOSS_R, 3.0, None, C_STAGE, axis="X", verts=24))
 for x, y in MAC_STUDS:        # solid columns under the Mac's stud screws, through-bolted from below
     bosses.append(cyl("boss", x, y, (wall_z0 + wall_z1) / 2, COLUMN_R, wall_z1 - wall_z0, None, C_STAGE, verts=32))
 for _, x, z in LATCH_SCREW_PTS:
@@ -182,6 +185,7 @@ cuts += [tap_hole(x, y, TOP_Z0, 4.0, "M2") for x, y in TOP_SCREWS]
 cuts += [tap_hole(x, y, TOP_Z0, 4.5, "M2") for _, x, y in JAW_SCREW_PTS]
 cuts += [cyl("cut", x, 2.5, z, T["M2"]["tap"] / 2, 5.2, None, C_STAGE, axis="Y", verts=20) for _, x, z in LATCH_SCREW_PTS]
 cuts += [clr_hole(x, y, BASE_T - 0.5, TOP_Z0 + 0.5, "M2") for x, y in MAC_STUDS]
+cuts += [cyl("cut", 2.75, y, BRIDGE["screw_z"], T["M2"]["tap"] / 2, 5.7, None, C_STAGE, axis="X", verts=20) for y in BRIDGE["screw_y"]]
 cut_many(walls, cuts)
 
 # exhaust deflector: turns the hot air down and away from the Mac's underside
@@ -661,21 +665,62 @@ for o in C_MAC.objects:
         o["check"] = True          # parts of the Mac that take part in the fit check
 
 # ================================================================ external cables (renders) and keep-out envelopes
-tb_y = USBC_PORTS[2][1]
-parts.usbc_plug("USB-C plug (sled Thunderbolt)", (USBC["x0"], tb_y, USBC_ZC), "-X", C_EXT, M, C_STAGE)
+# ---- bridge: one slim rigid part replaces both jumper cables on the left side.
+# A machined aluminium shell around a rigid-flex PCB carries the 28 V EPR line
+# (sled port -> MagSafe 3 plug) and Thunderbolt (sled port -> Mac Thunderbolt
+# L2). Its low run passes under the Mac's side intake vents, it steps up after
+# them, and it has windows for the headphone jack and the other Thunderbolt port.
+B = BRIDGE
 mac_tb = next(p for p in MAC_PORTS if p[0] == "Thunderbolt 4 L2")
-parts.usbc_plug("USB-C plug (Mac Thunderbolt)", (0, mac_tb[2], MAC_Z + MAC_PORT_CZ), "-X", C_EXT, M, C_STAGE)
-x_om = USBC["x0"] - (parts.USBC_PLUG["len"] - 6.2) - parts.USBC_PLUG["om_len"] - 5.5
-x_om2 = -(parts.USBC_PLUG["len"] - 6.2) - parts.USBC_PLUG["om_len"] - 5.5
+mac_ms = next(p for p in MAC_PORTS if p[0] == "MagSafe 3")
 zc2 = MAC_Z + MAC_PORT_CZ
-cable = [(x_om, tb_y, USBC_ZC), (x_om - 10, tb_y, USBC_ZC), (x_om - 26, tb_y + 22, USBC_ZC + 1),
-         (x_om - 32, (tb_y + mac_tb[2]) / 2, (USBC_ZC + zc2) / 2),
-         (x_om2 - 26, mac_tb[2] - 22, zc2 - 1), (x_om2 - 10, mac_tb[2], zc2), (x_om2, mac_tb[2], zc2)]
-cu = poly_curve("Thunderbolt cable (sled to Mac)", cable, M["rubber"], C_EXT, radius=parts.USBC_PLUG["cable_r"], res=4)
-cu.data.splines[0].type = "NURBS"
-cu.data.splines[0].use_endpoint_u = True
-cu.data.splines[0].order_u = 4
-cu.data.resolution_u = 24
+bx0, bx1 = B["x0"], B["x1"]
+segs = [rbox("b", bx0, B["y0"], B["z_low"][0], bx1, B["step_y"][1], B["z_low"][1], M["alu_dark"], C_STAGE, r=1.5),
+        rbox("b", bx0, B["step_y"][0], B["z_low"][0], bx1, B["step_y"][1], B["z_high"][1], M["alu_dark"], C_STAGE, r=1.5),
+        rbox("b", bx0, B["step_y"][0], B["z_high"][0], bx1, B["y1"], B["z_high"][1], M["alu_dark"], C_STAGE, r=1.5)]
+for o in segs:
+    apply_tf(o)
+bridge = segs[0]
+for o in segs[1:]:
+    boolean(bridge, o, op="UNION")
+bridge.name = "Bridge (6061, black anodised, rigid-flex inside)"
+link(bridge, C_BRIDGE)
+cuts = []
+for wname in B["windows"]:                 # windows for the ports the bridge passes over
+    p = next(pp for pp in MAC_PORTS if pp[0] == wname)
+    ow, oh = p[4]
+    cuts.append(rbox("cut", bx0 - 1, p[2] - ow / 2 - 0.3, zc2 - oh / 2 - 0.3, bx1 + 1, p[2] + ow / 2 + 0.3, zc2 + oh / 2 + 0.3,
+                     None, C_STAGE, r=1.0))
+for y in B["screw_y"]:                     # counterbored holes for the two M2 screws into the sled wall
+    cuts.append(cyl("cut", (bx0 - 0.1 + B["cbore_x"]) / 2, y, B["screw_z"], 2.1, B["cbore_x"] - bx0 + 0.2, None, C_STAGE, axis="X", verts=24))
+    cuts.append(cyl("cut", (B["cbore_x"] + bx1) / 2, y, B["screw_z"], T["M2"]["clr"] / 2, bx1 - B["cbore_x"] + 0.4, None, C_STAGE, axis="X", verts=20))
+cut_many(bridge, cuts)
+bridge.modifiers.new("soft", "BEVEL").width = 0.4 * MM
+bridge.modifiers["soft"].segments = 2
+bridge.modifiers["soft"].limit_method = "ANGLE"
+
+
+def plug_shell(name, at, exposed, w, h, depth, material, hollow=True):
+    """Plug tip sticking out of the bridge's inner face into a receptacle;
+    `at` = centre of the receptacle opening, the plug points +X. USB-C plugs
+    are hollow (the receptacle's tongue goes inside)."""
+    ob = prism(name, rounded_rect(-w / 2, -h / 2, w / 2, h / 2, h / 2 - 1e-3, 8), -exposed, depth, material, C_BRIDGE)
+    if hollow:
+        boolean(ob, prism("cut", rounded_rect(-w / 2 + 0.3, -h / 2 + 0.3, w / 2 - 0.3, h / 2 - 0.3, h / 2 - 0.31, 8),
+                          0.0, depth + 0.1, None, C_STAGE))
+    place(ob, at, "+X", spin=math.pi / 2)
+    return ob
+
+
+up = parts.USBC_PLUG
+for pname, yc in USBC_PORTS[1:]:
+    plug_shell(f"Bridge USB-C plug ({pname})", (USBC["x0"], yc, USBC_ZC), USBC["x0"] - bx1, up["w"], up["h"], 6.2, M["steel"])
+plug_shell("Bridge USB-C plug (Mac Thunderbolt 4 L2)", (0, mac_tb[2], zc2), -bx1, up["w"], up["h"], 6.2, M["steel"])
+plug_shell("Bridge MagSafe 3 plug", (0, mac_ms[2], zc2), -bx1, 9.2, 2.6, 0.6, M["steel"], hollow=False)
+for k, y in enumerate(B["screw_y"]):
+    screw("shcs", "M2", 8, (B["cbore_x"], y, B["screw_z"]), "-X", C_FAST, f"Screw M2x8 socket head (bridge #{k + 1})",
+          into="left wall + boss", grip=bx1 - B["cbore_x"])
+x_om = USBC["x0"] - (parts.USBC_PLUG["len"] - 6.2) - parts.USBC_PLUG["om_len"] - 5.5
 
 
 def nurbs_cable(name, pts, r):
@@ -688,15 +733,6 @@ def nurbs_cable(name, pts, r):
     return c
 
 
-# power: USB-C EPR out -> Apple USB-C to MagSafe 3 cable -> MagSafe port
-ms_y = USBC_PORTS[1][1]
-mac_ms = next(p for p in MAC_PORTS if p[0] == "MagSafe 3")
-parts.usbc_plug("USB-C plug (sled EPR out)", (USBC["x0"], ms_y, USBC_ZC), "-X", C_EXT, M, C_STAGE)
-parts.magsafe_plug("MagSafe 3 plug (Mac)", (0, mac_ms[2], MAC_Z + MAC_PORT_CZ), C_EXT, M)
-nurbs_cable("USB-C to MagSafe 3 cable (sled to Mac)",
-            [(x_om, ms_y, USBC_ZC), (x_om - 14, ms_y, USBC_ZC), (x_om - 40, ms_y + 40, USBC_ZC + 2),
-             (x_om - 46, (ms_y + mac_ms[2]) / 2, (USBC_ZC + zc2) / 2), (-60, mac_ms[2] - 30, zc2 - 1),
-             (-30, mac_ms[2], zc2), (-16.0, mac_ms[2], zc2)], 1.6)
 # the one cable: charger into the PD input
 pd_y = USBC_PORTS[0][1]
 parts.usbc_plug("USB-C plug (charger)", (USBC["x0"], pd_y, USBC_ZC), "-X", C_EXT, M, C_STAGE)
@@ -706,7 +742,7 @@ nurbs_cable("USB-C PD 3.1 cable (240 W, from the charger)",
 
 for name, y in LANES.items():         # nut driver / mating SMA plug around every bulkhead
     parts.envelope_cyl(f"Keep-out SMA access ({name})", (W + 0.6, y, Z_SMA), "+X", 5.6, 22.0, C_KEEP, M["keepout"])
-for pname, yc in USBC_PORTS:          # USB-C plug overmould at the sled's ports
+for pname, yc in USBC_PORTS[:1]:      # USB-C plug overmould at the charger port (the others are bridged)
     rbox(f"Keep-out USB-C plug ({pname})", -30, yc - 6.3, USBC_ZC - 3.4, -0.2, yc + 6.3, USBC_ZC + 3.4, M["keepout"], C_KEEP)
 for pname, side, py, _, (ow, oh) in MAC_PORTS:   # plugs in the Mac's own ports
     xa, xb = (-MAC_PLUG_LEN, -0.05) if side == "L" else (W + 0.05, W + MAC_PLUG_LEN)

@@ -47,7 +47,7 @@ from sled_config import (  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 MM = 0.001
 EPS = 0.03  # mm
-CHECKED = ["Sled chassis", "Thermal", "Boards", "RF pigtails", "Top plate", "Fasteners", "Mount"]
+CHECKED = ["Sled chassis", "Thermal", "Boards", "RF pigtails", "Top plate", "Fasteners", "Mount", "Bridge"]
 RF_PREFIXES = ("Pigtail", "MHF4", "SMA bulkhead")
 
 bpy.ops.wm.open_mainfile(filepath=str(ROOT / "model/osint_sled.blend"))
@@ -294,8 +294,9 @@ print(f"7. Mac held: {len(side_liners)} liners preloaded, {len(stops)} stops and
 # 8: insertion path (lift the Mac straight up out of the cradle, then back down)
 # the pawls are pushed down and the side liners stay compressed while the Mac slides (checked in 7)
 static = [p for p in parts if p.coll in ("Mount", "Top plate", "Fasteners", "Sled chassis")
-          and "pawl" not in p.name and not p.name.endswith("TPU liner") and "stud bolt" not in p.name]
-# (the stud bolts come out from below before the Mac is lifted)
+          and "pawl" not in p.name and not p.name.endswith("TPU liner") and "stud bolt" not in p.name
+          and "bridge" not in p.name]
+# (the stud bolts come out from below and the bridge comes off before the Mac is lifted)
 movers = [(m, m.verts, m.tris, m.normals) for m in mac]
 LIFT = 40.0
 z = 0.0
@@ -323,6 +324,8 @@ for k in keepouts:
             continue
         if p in mac and ("Mac plug" in k.name or "lid" in k.name or "vent" in k.name):
             continue
+        if p.coll == "Bridge" and ("MagSafe 3" in k.name or "Thunderbolt 4 L2" in k.name):
+            continue                # the ports the bridge plugs into
         if k.bvh.overlap(p.bvh):
             fail(f"{p.name} is inside {k.name}")
 print(f"9. keep-out envelopes: {len(keepouts)} checked")

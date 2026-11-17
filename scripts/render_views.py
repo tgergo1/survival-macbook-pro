@@ -103,12 +103,14 @@ elif view == "hero_left":
 elif view == "insert":
     # the Mac lifted off: its four stud screws line up with the holes in the top plate
     hide("External cables")
+    hide("Bridge")
     move(col("MacBook Pro 16").objects, dz=38)
     bpy.data.objects["Lid hinge"].rotation_euler = (0, 0, 0)    # lid closed
     camera((-95, -120, 34), (30, 25, 17), lens=50, fstop=8)
 elif view == "exploded":
     hide("MacBook Pro 16")
     hide("External cables")
+    move(col("Bridge").objects, dx=-70)
     move(col("Top plate").objects, dz=110)
     move(col("Mount").objects, dz=150)
     for o in col("Mount").objects:
@@ -120,6 +122,8 @@ elif view == "exploded":
             o.location.z += 128 * MM
         elif "countersunk" in o.name:
             o.location.z += 168 * MM
+        elif "bridge" in o.name:
+            o.location.x -= 95 * MM
         elif "latch" in o.name:
             o.location.y -= 62 * MM
         else:
@@ -132,29 +136,32 @@ elif view == "layout":
     hide("Top plate")
     hide("Mount")
     hide("External cables")
+    hide("Bridge")
     for o in col("Fasteners").objects:
-        if "top plate" in o.name or "countersunk" in o.name:
+        if "top plate" in o.name or "countersunk" in o.name or "bridge" in o.name:
             o.hide_render = True
     camera((W / 2, D / 2, 800), (W / 2, D / 2, 0), ortho=0.40)
 elif view == "thermal":
-    for c in ("MacBook Pro 16", "Top plate", "Boards", "RF pigtails", "Mount", "External cables", "Fasteners"):
+    for c in ("MacBook Pro 16", "Top plate", "Boards", "RF pigtails", "Mount", "External cables", "Fasteners", "Bridge"):
         hide(c)
     camera((560, 520, 300), (170, 110, 0), lens=44)
 elif view == "latch":
     hide("External cables")
+    hide("Bridge")
     camera((-45, -95, 62), (18, 0, 12), lens=70, fstop=8)
 elif view == "rear_stop":
     bpy.data.objects["Lid hinge"].rotation_euler = (0, 0, 0)    # lid closed
     camera((W + 110, D + 105, 80), (W - 12, D - 8, MAC_Z), lens=70, fstop=11)
 elif view == "sma":
     hide("External cables")
+    hide("Bridge")
     mid = (LANES["Kraken CH2"] + LANES["Airspy HF+"]) / 2
     camera((W + 85, mid - 95, 42), (W + 2, mid + 8, Z_SMA + 2), lens=70, fstop=6.3)
 elif view == "fasteners":
-    for c in ("MacBook Pro 16", "Top plate", "Mount", "External cables"):
+    for c in ("MacBook Pro 16", "Top plate", "Mount", "External cables", "Bridge"):
         hide(c)
     for o in col("Fasteners").objects:
-        if "top plate" in o.name or "countersunk" in o.name:
+        if "top plate" in o.name or "countersunk" in o.name or "bridge" in o.name:
             o.hide_render = True
     camera((318, 112, 34), (291.2, 142.2, 9), lens=90, fstop=11)
 elif view == "reference":
