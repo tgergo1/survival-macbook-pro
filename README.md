@@ -14,15 +14,15 @@ A ~12 mm machined-aluminium sled that sits under a 16" MacBook Pro and holds a f
 ![Left side with the bridge](renders/render_hero_left.png)
 
 ### The Mac lifted off: a stud screw in place of a bottom-case screw, the bolt hole in the top plate, the three dock ports, a front stop
-![Mac partly inserted](renders/render_insert.png)
+![Mac lifted off its stud screws](renders/render_insert.png)
 
-### Front latch, rear corner stop, SMA bulkheads and a HackRF mounting screw
+### Front stop, rear corner stop, SMA bulkheads and a HackRF mounting screw
 | | |
 |---|---|
-| ![Front latch](renders/render_latch.png) | ![Rear corner stop](renders/render_rear_stop.png) |
+| ![Front stop, front-left jaw and stud screw](renders/render_latch.png) | ![Rear corner stop](renders/render_rear_stop.png) |
 | ![SMA bulkheads](renders/render_sma.png) | ![HackRF screw, washer and boss](renders/render_fasteners.png) |
 
-### Exploded: base plate with pocket walls and thermal layer, boards with RF pigtails and their screws, top plate and its screws, jaws and latches
+### Exploded: base plate with pocket walls and thermal layer, boards with RF pigtails and their screws, top plate and its screws, jaws, front stops and the bridge
 ![Exploded view](renders/render_exploded.png)
 
 ### Top view with the top plate removed
