@@ -29,4 +29,19 @@ Positions are in sled coordinates: x from the Mac's left side, y from its front 
 | Left ports (from the front) | MagSafe 3 212.5, Thunderbolt 193.8 and 178.8, headphone 166.0 | |
 | Right ports (from the front) | HDMI 212.3, Thunderbolt 193.8, SDXC 169.2 | |
 
-Not measurable from photos: the bottom-case screw thread and its length inside the Mac. iFixit lists the 2021 model's screws as four 9.1 mm (rear) and four 5 mm (front) P5 pentalobe screws. Take one out and measure it before making the stud screws.
+## Bottom-case screws
+
+Apple's [service guide](https://support.apple.com/100572) lists four short screws at the front and four long ones at the rear. [iFixit](https://www.ifixit.com/Guide/MacBook+Pro+16-Inch+2021+Antenna+Bar+Replacement/150596) gives their lengths as 5 mm and 9.1 mm. Apple's [screw page](https://support.apple.com/100570) shows a side photo of each: 923-06866/923-06868 (front) and 923-06867/923-06869 (rear). The [iFixit screw set](https://www.ifixit.com/products/macbook-pro-16-a2485-a2780-a2991-lower-case-screw-set) photo shows the same shapes. They are **shoulder screws**: a flat countersunk P5 pentalobe head, a smooth shoulder, then a short thread at the tip.
+
+I measured Apple's two part photos along the screw axis (principal axis of the silhouette) and scaled them to the iFixit lengths. The thread pitch comes from the period of the crest pattern (FFT of the silhouette edge).
+
+| | Front (5 mm) | Rear (9.1 mm) |
+|---|---|---|
+| Head (countersunk) | Ø 2.7, 0.9 high | Ø 2.7, 0.85 high |
+| Shoulder | Ø 2.0 × 1.7 | Ø 2.0 × 5.95 |
+| Thread | Ø 1.75 major × 2.2 | Ø 1.75 major × 2.3 |
+| Pitch | 0.37 to 0.38 | 0.37 to 0.38 |
+
+Both screws agree. The thread is about **M1.7 × 0.35** (JIS), not a common metric size. The photos are small (200 px) and taken at a slight angle, so treat these as ±0.1 mm on diameters and ±0.03 mm on pitch. **Check one screw with a caliper and a thread gauge before ordering the studs.** No source found gives Apple's thread specification.
+
+Each stud copies the head seat, shoulder and thread of the screw it replaces (`STOCK_SCREW` in `sled_config.py`), so it reaches exactly as deep into the Mac as the stock screw.

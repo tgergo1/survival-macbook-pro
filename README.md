@@ -92,13 +92,13 @@ The sled is **bolted to the Mac through four of the Mac's own bottom-case screw 
 
 **Stud screws (replacing the Mac's corner bottom-case screws).** The 16" MacBook Pro's bottom case is held by eight P5 pentalobe screws (on the 2021 model, four are 9.1 mm and four are 5 mm, per [iFixit](https://www.ifixit.com/Guide/MacBook+Pro+16-Inch+2021+Antenna+Bar+Replacement/150596)). The four corner ones are replaced by stud screws turned from A2 stainless. Each stud has:
 
-- the **same thread, the same thread length and the same under-head shape** as the stock screw it replaces, so it clamps the bottom case exactly as before and reaches no deeper into the Mac;
+- the **same countersunk head seat, shoulder and thread** as the stock screw it replaces. The stock screws are shoulder screws: Ø 2.7 mm head, Ø 2.0 mm shoulder (1.7 mm front, about 6 mm rear) and about 2.2 mm of roughly M1.7 × 0.35 thread at the tip, all measured from Apple's part photos. So the stud clamps the bottom case exactly as before and reaches no deeper into the Mac;
 - instead of the pentalobe head, a Ø4 mm body with 3.5 mm wrench flats that bridges the 2.6 mm gap between the Mac's bottom and the sled's top plate (the same height as the Mac's feet on the silicone rails, so the Mac still sits on its feet);
 - an M2 female thread, 2.2 mm deep, in the bottom of the body.
 
 An ISO 14581 M2×14 countersunk screw goes up from under the sled, flush with the base's underside, through a solid column milled in the base and through the top plate, into each stud. Tightening it pulls the stud and the Mac down onto the top plate. The check measures 2.2 mm of thread engaged in each stud (1.1 × d in stainless; it requires 1.0 × d). To keep the columns clear, the dock board moved 5 mm back, the blower moved 4 mm forward and heat pipe 3 was re-routed.
 
-The screw positions are **measured** from Apple's own photo of the underside (see [docs/mac_measurements.md](docs/mac_measurements.md)). **Before machining, take one stock screw out of your Mac and measure it:** the thread (Apple's pentalobe screws are not a standard metric size) and the thread length cannot be measured from photos. Torque the studs into the Mac by hand to the same feel as the stock screws; the M2 bolts take the load.
+The screw positions are **measured** from Apple's own photo of the underside (see [docs/mac_measurements.md](docs/mac_measurements.md)). The stock screw's shape and thread are also measured from photos (see [docs/mac_measurements.md](docs/mac_measurements.md#bottom-case-screws)), so **check one screw with a caliper and a thread gauge before ordering the studs**. Torque the studs into the Mac by hand to the same feel as the stock screws; the M2 bolts take the load.
 
 **Cradle.**
 

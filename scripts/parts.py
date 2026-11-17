@@ -249,17 +249,21 @@ def usbc_plug(name, at, axis, c, materials, stage, cable_pts=None):
 
 
 # ------------------------------------------------------------------ MacBook stud screw
-def stud_screw(name, x, y, z_plate, z_mac, stud, c, materials, stage):
-    """Replacement for a MacBook bottom-case screw: the stock thread and
-    under-head on top (into the Mac), a body that bridges the gap down to the
-    sled's top plate, M2 female thread from below. Bottom face at z_plate."""
+def stud_screw(name, x, y, z_plate, z_mac, stud, stock, c, materials, stage):
+    """Replacement for a MacBook bottom-case shoulder screw: the stock
+    countersunk head seat, shoulder and thread on top (into the Mac, exactly as
+    the stock screw), a body that bridges the gap down to the sled's top plate,
+    M2 female thread from below. Bottom face at z_plate."""
     r = stud["body_d"] / 2
-    ra = stud["apple_thread_d"] / 2
     tap = THREAD["M2"]["tap"] / 2
+    s = stock
+    z_sh = z_mac + s["head_h"]                    # top of the countersunk head = start of the shoulder
+    z_th = z_sh + s["shoulder_len"]
+    z_tip = z_mac + s["length"]
     prof = [(0, z_plate + stud["thread_depth"] + 0.25), (tap, z_plate + stud["thread_depth"]), (tap, z_plate),
-            (r - 0.2, z_plate), (r, z_plate + 0.2), (r, z_mac), (ra, z_mac),
-            (ra, z_mac + stud["apple_thread_len"] - 0.2), (ra - 0.2, z_mac + stud["apple_thread_len"]),
-            (0, z_mac + stud["apple_thread_len"])]
+            (r - 0.2, z_plate), (r, z_plate + 0.2), (r, z_mac), (s["head_d"] / 2, z_mac),
+            (s["shoulder_d"] / 2, z_sh), (s["shoulder_d"] / 2, z_th), (s["thread_d"] / 2, z_th),
+            (s["thread_d"] / 2, z_tip - 0.2), (s["thread_d"] / 2 - 0.2, z_tip), (0, z_tip)]
     ob = lathe(name, prof, materials["screw"], c, seg=32)
     f = stud["flats"] / 2               # wrench flats on the body
     cuts = [rbox("cut", f, -r - 1, z_plate + 0.4, r + 1, r + 1, z_mac - 0.01, None, stage),

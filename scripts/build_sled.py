@@ -31,7 +31,7 @@ from sled_config import (  # noqa: E402
     MHF4_RECEPT_H, PAD_GAP, PAD_T, PCB_T, PCB_TOP, PCB_Z0, PEDESTALS, PLENUM, RAIL_T,
     REAR_RETURN, SIDE_INTAKE, SILICONE_RAILS, SMA_FERRULE_X, SMA_HOLE_FLAT, SMA_HOLE_R, TOP_SCREWS,
     TOP_Z0, TOP_Z1, USBC, USBC_PORTS, W, WALL_BOSS_R, WALL_T, Z_HIGH, Z_LOW, Z_SMA,
-    COLUMN_R, MAC_STUDS, MIN_ENGAGEMENT_STEEL, SLED_FEET, STUD, STUD_BOLT_LEN, MAC_BOTTOM_SCREWS, MAC_VENTS,
+    COLUMN_R, MAC_STUDS, MIN_ENGAGEMENT_STEEL, SLED_FEET, STUD, STUD_BOLT_LEN, MAC_BOTTOM_SCREWS, MAC_VENTS, STOCK_SCREW,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -652,7 +652,8 @@ for side in "LR":                       # side intake vents on the underside edg
     rbox(f"Mac intake vent ({side})", xa, MAC_VENTS["y0"], MAC_Z + 0.2, xb, MAC_VENTS["y1"], MAC_Z + 1.0, M["port"], C_MAC, r=0.9)
 for k, (x, y) in enumerate(MAC_STUDS):
     tag = ("front " if y < D / 2 else "rear ") + ("left" if x < W / 2 else "right")
-    parts.stud_screw(f"Stud screw ({tag})", x, y, TOP_Z1, MAC_Z, STUD, C_MAC, M, C_STAGE)
+    parts.stud_screw(f"Stud screw ({tag})", x, y, TOP_Z1, MAC_Z, STUD, STOCK_SCREW["front" if y < D / 2 else "rear"],
+                     C_MAC, M, C_STAGE)
     screw("csk", "M2", STUD_BOLT_LEN, (x, y, 0.0), "-Z", C_FAST, f"Screw M2x{STUD_BOLT_LEN} countersunk (stud bolt {tag})",
           into="stud screw (stainless)", grip=TOP_Z1, min_ratio=MIN_ENGAGEMENT_STEEL)
 for o in C_MAC.objects:

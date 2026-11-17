@@ -272,7 +272,20 @@ MIN_ENGAGEMENT = 1.5         # x nominal diameter of thread engaged in aluminium
 MAC_STUDS = [  # (x, y) of the four corner screws, measured from Apple's bottom-case photo
     (10.3, 10.4), (W - 10.3, 10.4), (10.3, D - 10.8), (W - 10.3, D - 10.8),
 ]
-STUD = dict(body_d=4.0, flats=3.5, thread_depth=2.2, apple_thread_d=1.4, apple_thread_len=4.0)
+STUD = dict(body_d=4.0, flats=3.5, thread_depth=2.2)
+# The stock bottom-case screws are SHOULDER screws: a flat countersunk head, a
+# smooth shoulder and a short thread at the tip. Measured from Apple's part
+# photos (support.apple.com/100570, 923-06866 front / 923-06867 rear), scaled
+# to iFixit's 5 mm and 9.1 mm lengths: head ~2.7 mm, shoulder ~2.0 mm, thread
+# ~1.75 mm major at ~0.37 mm pitch (so about M1.7 x 0.35, not a common metric
+# size), ~2.2 mm of thread. The stud copies these exactly (it is only the head
+# end that changes), so check one stock screw with a caliper and thread gauge.
+STOCK_SCREW = {
+    "front": dict(length=5.0, head_d=2.7, head_h=0.9, shoulder_d=2.0, shoulder_len=1.7, thread_d=1.75, thread_len=2.2,
+                  pitch=0.37, apple_part="923-06866 (silver) / 923-06868 (space gray)"),
+    "rear": dict(length=9.1, head_d=2.7, head_h=0.85, shoulder_d=2.0, shoulder_len=5.95, thread_d=1.75, thread_len=2.3,
+                 pitch=0.37, apple_part="923-06867 (silver) / 923-06869 (space gray)"),
+}
 COLUMN_R = 2.5               # solid column milled in the base under each stud, M2 clearance through it
 STUD_BOLT_LEN = 14           # ISO 14581 M2x14 countersunk, flush in the base's underside
 SLED_FEET = [(26.0, 14.0), (W - 26.0, 14.0), (26.0, D - 14.0), (W - 26.0, D - 14.0)]
