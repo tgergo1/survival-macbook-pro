@@ -31,6 +31,7 @@ from sled_config import (  # noqa: E402
     MHF4_RECEPT_H, PAD_GAP, PAD_T, PCB_T, PCB_TOP, PCB_Z0, PEDESTALS, PLENUM, RAIL_T,
     REAR_RETURN, SIDE_INTAKE, SILICONE_RAILS, SMA_FERRULE_X, SMA_HOLE_FLAT, SMA_HOLE_R, TOP_SCREWS,
     TOP_Z0, TOP_Z1, USBC, USBC_PORTS, W, WALL_BOSS_R, WALL_T, Z_HIGH, Z_LOW, Z_SMA,
+    COLUMN_R, MAC_STUDS, MIN_ENGAGEMENT_STEEL, SLED_FEET, STUD, STUD_BOLT_LEN,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,6 +141,8 @@ for side in "LR":
         LATCH_SCREW_PTS.append((side, sx if side == "L" else W - sx, sz))
 bosses = [cyl("boss", x, y, (wall_z0 + wall_z1) / 2, WALL_BOSS_R, wall_z1 - wall_z0, None, C_STAGE, verts=24)
           for x, y in TOP_SCREWS + [(x, y) for _, x, y in JAW_SCREW_PTS]]
+for x, y in MAC_STUDS:        # solid columns under the Mac's stud screws, through-bolted from below
+    bosses.append(cyl("boss", x, y, (wall_z0 + wall_z1) / 2, COLUMN_R, wall_z1 - wall_z0, None, C_STAGE, verts=32))
 for _, x, z in LATCH_SCREW_PTS:
     bosses.append(cyl("boss", x, WALL_T + 1.75, z, WALL_BOSS_R, 3.5 + 0.2, None, C_STAGE, axis="Y", verts=24))
 for b in bosses:
@@ -178,6 +181,7 @@ cuts += [rbox("cut", -1, yc - USBC["w"] / 2 - 0.4, USBC_ZC - USBC["h"] / 2 - 0.4
 cuts += [tap_hole(x, y, TOP_Z0, 4.0, "M2") for x, y in TOP_SCREWS]
 cuts += [tap_hole(x, y, TOP_Z0, 4.5, "M2") for _, x, y in JAW_SCREW_PTS]
 cuts += [cyl("cut", x, 2.5, z, T["M2"]["tap"] / 2, 5.2, None, C_STAGE, axis="Y", verts=20) for _, x, z in LATCH_SCREW_PTS]
+cuts += [clr_hole(x, y, BASE_T - 0.5, TOP_Z0 + 0.5, "M2") for x, y in MAC_STUDS]
 cut_many(walls, cuts)
 
 # exhaust deflector: turns the hot air down and away from the Mac's underside
@@ -197,7 +201,14 @@ for gx in range(-3, 4):
         if gx * gx + gy * gy <= 10:
             grille.append(cyl("g", bx + gx * 4.4, by + gy * 4.4, BASE_T / 2, 1.6, BASE_T + 2, None, C_SLED, verts=12))
 cut_many(base, grille)
-for i, (x, y) in enumerate([(14, 14), (W - 14, 14), (14, D - 14), (W - 14, D - 14)]):
+csk_from_below = []
+for x, y in MAC_STUDS:           # countersunk clearance holes for the stud bolts, flush with the underside
+    c = lathe("cut", [(0, -0.5), (2.4, -0.5), (2.0, 0.0), (T["M2"]["clr"] / 2, 2.0 - T["M2"]["clr"] / 2),
+                      (T["M2"]["clr"] / 2, BASE_T + 0.5), (0, BASE_T + 0.5)], None, C_STAGE, seg=24)
+    c.data.transform(mathutils.Matrix.Translation((x * MM, y * MM, 0)))
+    csk_from_below.append(c)
+cut_many(base, csk_from_below)
+for i, (x, y) in enumerate(SLED_FEET):
     f = lathe(f"Sled foot {i + 1}", [(0, -FOOT_H), (4.2, -FOOT_H), (5, -FOOT_H + 0.8), (5, 0), (0, 0)], M["rubber"], C_SLED, seg=32)
     f.data.transform(mathutils.Matrix.Translation((x * MM, y * MM, 0)))
 
@@ -480,7 +491,7 @@ scene["pigtail_lengths_mm"] = {k: round(v, 2) for k, v in lengths.items()}
 
 # ================================================================ top plate
 top = rbox("Top plate (1 mm, grounded shield)", 0, 0, TOP_Z0, W, D, TOP_Z1, M["alu_dark"], C_TOP, r=CORNER_R, bevel=0.3)
-cut_many(top, [clr_hole(x, y, TOP_Z0, TOP_Z1, "M2") for x, y in TOP_SCREWS + [(x, y) for _, x, y in JAW_SCREW_PTS]])
+cut_many(top, [clr_hole(x, y, TOP_Z0, TOP_Z1, "M2") for x, y in TOP_SCREWS + MAC_STUDS + [(x, y) for _, x, y in JAW_SCREW_PTS]])
 for k, (x, y) in enumerate(TOP_SCREWS):
     screw("pan", "M2", 4, (x, y, TOP_Z1), "+Z", C_FAST, f"Screw M2x4 (top plate #{k + 1})", into="wall boss", grip=1.0)
 for i, (xa, xb) in enumerate(SILICONE_RAILS):
@@ -631,12 +642,19 @@ for i, (x, y) in enumerate([(fi_x, fi_y), (W - fi_x, fi_y), (fi_x, D - fi_y), (W
     f = lathe(f"Mac foot {i + 1}", [(0, MAC_Z - MAC_FOOT_T), (r - 0.4, MAC_Z - MAC_FOOT_T), (r, MAC_Z - MAC_FOOT_T + 0.3),
                                     (r, MAC_Z + 0.2), (0, MAC_Z + 0.2)], M["rubber"], C_MAC, seg=40)
     f.data.transform(mathutils.Matrix.Translation((x * MM, y * MM, 0)))
+STUD_NAMES = {(16.0, 9.5): "front left", (W - 16.0, 9.5): "front right", (16.0, D - 9.5): "rear left",
+              (W - 16.0, D - 9.5): "rear right"}
+for k, (x, y) in enumerate(MAC_STUDS):
+    tag = STUD_NAMES.get((x, y), f"#{k + 1}")
+    parts.stud_screw(f"Stud screw ({tag})", x, y, TOP_Z1, MAC_Z, STUD, C_MAC, M, C_STAGE)
+    screw("csk", "M2", STUD_BOLT_LEN, (x, y, 0.0), "-Z", C_FAST, f"Screw M2x{STUD_BOLT_LEN} countersunk (stud bolt {tag})",
+          into="stud screw (stainless)", grip=TOP_Z1, min_ratio=MIN_ENGAGEMENT_STEEL)
 for o in C_MAC.objects:
-    if o.type == "MESH" and o.name.startswith(("MacBook base", "Mac foot")):
+    if o.type == "MESH" and o.name.startswith(("MacBook base", "Mac foot", "Stud screw")):
         o["check"] = True          # parts of the Mac that take part in the fit check
 
 # ================================================================ external cables (renders) and keep-out envelopes
-tb_y = USBC_PORTS[1][1]
+tb_y = USBC_PORTS[2][1]
 parts.usbc_plug("USB-C plug (sled Thunderbolt)", (USBC["x0"], tb_y, USBC_ZC), "-X", C_EXT, M, C_STAGE)
 mac_tb = next(p for p in MAC_PORTS if p[0] == "Thunderbolt 4 L2")
 parts.usbc_plug("USB-C plug (Mac Thunderbolt)", (0, mac_tb[2], MAC_Z + MAC_PORT_CZ), "-X", C_EXT, M, C_STAGE)
@@ -651,6 +669,33 @@ cu.data.splines[0].type = "NURBS"
 cu.data.splines[0].use_endpoint_u = True
 cu.data.splines[0].order_u = 4
 cu.data.resolution_u = 24
+
+
+def nurbs_cable(name, pts, r):
+    c = poly_curve(name, pts, M["rubber"], C_EXT, radius=r, res=4)
+    sp = c.data.splines[0]
+    sp.type = "NURBS"
+    sp.use_endpoint_u = True
+    sp.order_u = 4
+    c.data.resolution_u = 24
+    return c
+
+
+# power: USB-C EPR out -> Apple USB-C to MagSafe 3 cable -> MagSafe port
+ms_y = USBC_PORTS[1][1]
+mac_ms = next(p for p in MAC_PORTS if p[0] == "MagSafe 3")
+parts.usbc_plug("USB-C plug (sled EPR out)", (USBC["x0"], ms_y, USBC_ZC), "-X", C_EXT, M, C_STAGE)
+parts.magsafe_plug("MagSafe 3 plug (Mac)", (0, mac_ms[2], MAC_Z + MAC_PORT_CZ), C_EXT, M)
+nurbs_cable("USB-C to MagSafe 3 cable (sled to Mac)",
+            [(x_om, ms_y, USBC_ZC), (x_om - 14, ms_y, USBC_ZC), (x_om - 40, ms_y + 40, USBC_ZC + 2),
+             (x_om - 46, (ms_y + mac_ms[2]) / 2, (USBC_ZC + zc2) / 2), (-60, mac_ms[2] - 30, zc2 - 1),
+             (-30, mac_ms[2], zc2), (-16.0, mac_ms[2], zc2)], 1.6)
+# the one cable: charger into the PD input
+pd_y = USBC_PORTS[0][1]
+parts.usbc_plug("USB-C plug (charger)", (USBC["x0"], pd_y, USBC_ZC), "-X", C_EXT, M, C_STAGE)
+nurbs_cable("USB-C PD 3.1 cable (240 W, from the charger)",
+            [(x_om, pd_y, USBC_ZC), (x_om - 20, pd_y, USBC_ZC), (x_om - 60, pd_y - 30, USBC_ZC - 2),
+             (x_om - 90, pd_y - 120, -FOOT_H + 2.5), (x_om - 110, pd_y - 260, -FOOT_H + 2.5)], 2.3)
 
 for name, y in LANES.items():         # nut driver / mating SMA plug around every bulkhead
     parts.envelope_cyl(f"Keep-out SMA access ({name})", (W + 0.6, y, Z_SMA), "+X", 5.6, 22.0, C_KEEP, M["keepout"])

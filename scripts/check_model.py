@@ -20,8 +20,11 @@ Checks
      (LINER_SQUEEZE, measured as the liner's depth into the Mac) and still
      would be on a Mac at the narrow end of MAC_WIDTH_TOL; both rear stops
      and both pawls touch it.
-  8. The Mac slides in and out from the front without hitting anything but
-     the pawls (which it pushes down).
+  8. The Mac (with its stud screws) lowers straight into the cradle without
+     hitting anything; the side liners are compressed on the way (check 7).
+ 10. One-cable power: the charger is never overdrawn, a 240 W charger runs
+     everything and charges the Mac at 140 W, and on the Mac's battery the
+     sled sheds boards down to the Thunderbolt port's 15 W (power_plan.py).
   9. Keep-out envelopes are clear: SMA nut driver and mating plug, USB-C plugs
      at the sled, plugs in the Mac's own ports, and the lid's swing.
 """
@@ -206,6 +209,7 @@ def inside(p, solid):
 
 AXIS = {"+Z": (0, 0, 1), "-Z": (0, 0, -1), "+X": (1, 0, 0), "-X": (-1, 0, 0), "+Y": (0, 1, 0), "-Y": (0, -1, 0)}
 metal = [p for p in parts if p.coll in ("Sled chassis", "Mount") and not p.name.startswith(("Sled foot", "Proxmark", "SMA"))]
+metal += [m for m in mac if m.name.startswith("Stud screw")]
 fasteners = json.loads(bpy.context.scene["fasteners"])
 worst = None
 per_type = {}
@@ -235,13 +239,13 @@ for f in fasteners:
             break
         s += step
     engaged += 0.3 if started else 0.0
-    need = MIN_ENGAGEMENT * f["d"]
+    need = (f.get("min_ratio") or MIN_ENGAGEMENT) * f["d"]
     if worst is None or engaged / need < worst[1] / worst[2]:
         worst = (f["name"], engaged, need)
     key = f'{f["kind"]} {f["size"]}x{f["length"]}'
     per_type.setdefault(key, []).append(engaged)
     if engaged + 1e-6 < need:
-        fail(f"{f['name']}: {engaged:.1f} mm of thread engaged, needs {need:.1f} mm ({MIN_ENGAGEMENT} x d)")
+        fail(f"{f['name']}: {engaged:.1f} mm of thread engaged, needs {need:.1f} mm ({need / f['d']:.1f} x d)")
 print(f"6. thread engagement: {len(fasteners)} screws, tightest {worst[0]} with {worst[1]:.1f} mm (needs {worst[2]:.1f})")
 for key, es in sorted(per_type.items()):
     print(f"     {key:14s} x{len(es):3d}  engaged {min(es):.1f}-{max(es):.1f} mm")
@@ -287,25 +291,27 @@ if len(side_liners) != 4:
     fail(f"expected 4 side jaw liners, found {len(side_liners)}")
 print(f"7. Mac held: {len(side_liners)} liners preloaded, {len(stops)} stops and pawls touching")
 
-# 8: insertion path (slide the Mac forward out of the cradle, then back)
+# 8: insertion path (lift the Mac straight up out of the cradle, then back down)
 # the pawls are pushed down and the side liners stay compressed while the Mac slides (checked in 7)
 static = [p for p in parts if p.coll in ("Mount", "Top plate", "Fasteners", "Sled chassis")
-          and "pawl" not in p.name and not p.name.endswith("TPU liner")]
+          and "pawl" not in p.name and not p.name.endswith("TPU liner") and "stud bolt" not in p.name]
+# (the stud bolts come out from below before the Mac is lifted)
 movers = [(m, m.verts, m.tris, m.normals) for m in mac]
-y = 0.0
+LIFT = 40.0
+z = 0.0
 hits8 = set()
-while y <= D + 10:
+while z <= LIFT:
     for m, verts, tris, normals in movers:
-        bvh, lo, hi = shrunk_bvh(verts, tris, normals, (0, -y * MM, 0))
+        bvh, lo, hi = shrunk_bvh(verts, tris, normals, (0, 0, z * MM))
         for s in static:
             if any(lo[i] > s.hi[i] or s.lo[i] > hi[i] for i in range(3)):
                 continue
             if bvh.overlap(s.bvh):
-                hits8.add((m.name, s.name, round(y, 1)))
-    y += 2.0
-for mname, sname, yy in sorted(hits8)[:20]:
-    fail(f"sliding the Mac out: {mname} hits {sname} {yy} mm forward")
-print(f"8. insertion path: Mac slid {D + 10:.0f} mm forward in 2 mm steps, {len(hits8)} hits")
+                hits8.add((m.name, s.name, round(z, 1)))
+    z += 0.5
+for mname, sname, zz in sorted(hits8)[:20]:
+    fail(f"lifting the Mac out: {mname} hits {sname} {zz} mm up")
+print(f"8. insertion path: Mac lifted {LIFT:.0f} mm straight up in 0.5 mm steps, {len(hits8)} hits")
 
 # 9: keep-out envelopes
 for k in keepouts:
@@ -320,6 +326,12 @@ for k in keepouts:
         if k.bvh.overlap(p.bvh):
             fail(f"{p.name} is inside {k.name}")
 print(f"9. keep-out envelopes: {len(keepouts)} checked")
+
+# 10: one-cable power plan
+import power_plan  # noqa: E402
+for msg in power_plan.problems():
+    fail(f"power: {msg}")
+print("10. power plan:\n" + power_plan.table())
 
 if failures:
     print(f"\n{len(failures)} check(s) failed")

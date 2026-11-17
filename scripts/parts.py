@@ -73,7 +73,7 @@ def _screw_proto(kind, size, length, materials, stage):
     return ob
 
 
-def screw(kind, size, length, at, axis, c, name, materials, stage, into=None, grip=0.0):
+def screw(kind, size, length, at, axis, c, name, materials, stage, into=None, grip=0.0, min_ratio=None):
     """Place a screw. `at` is the bearing point (under the head; for
     countersunk screws the flush top surface) and `axis` points out of the
     head (the screw goes in along -axis). Records it for the check."""
@@ -84,7 +84,8 @@ def screw(kind, size, length, at, axis, c, name, materials, stage, into=None, gr
     std = {"pan": "ISO 14583", "csk": "ISO 14581", "shcs": "ISO 4762"}[kind]
     ob["standard"] = f"{std} {size}x{length}"
     FASTENERS.append(dict(name=name, size=size, kind=kind, length=length, at=list(at), axis=axis,
-                          d=THREAD[size]["d"], tap=THREAD[size]["tap"], into=into or "", grip=grip))
+                          d=THREAD[size]["d"], tap=THREAD[size]["tap"], into=into or "", grip=grip,
+                          min_ratio=min_ratio))
     return ob
 
 
@@ -244,6 +245,38 @@ def usbc_plug(name, at, axis, c, materials, stage, cable_pts=None):
                                              (0, u["len"] - 6.2 + u["om_len"] + 6)], materials["rubber"], c, seg=24)
     ob = join([shell, om, relief], name)
     place(ob, at, axis, spin=math.pi / 2)
+    return ob
+
+
+# ------------------------------------------------------------------ MacBook stud screw
+def stud_screw(name, x, y, z_plate, z_mac, stud, c, materials, stage):
+    """Replacement for a MacBook bottom-case screw: the stock thread and
+    under-head on top (into the Mac), a body that bridges the gap down to the
+    sled's top plate, M2 female thread from below. Bottom face at z_plate."""
+    r = stud["body_d"] / 2
+    ra = stud["apple_thread_d"] / 2
+    tap = THREAD["M2"]["tap"] / 2
+    prof = [(0, z_plate + stud["thread_depth"] + 0.25), (tap, z_plate + stud["thread_depth"]), (tap, z_plate),
+            (r - 0.2, z_plate), (r, z_plate + 0.2), (r, z_mac), (ra, z_mac),
+            (ra, z_mac + stud["apple_thread_len"] - 0.2), (ra - 0.2, z_mac + stud["apple_thread_len"]),
+            (0, z_mac + stud["apple_thread_len"])]
+    ob = lathe(name, prof, materials["screw"], c, seg=32)
+    f = stud["flats"] / 2               # wrench flats on the body
+    cuts = [rbox("cut", f, -r - 1, z_plate + 0.4, r + 1, r + 1, z_mac - 0.01, None, stage),
+            rbox("cut", -r - 1, -r - 1, z_plate + 0.4, -f, r + 1, z_mac - 0.01, None, stage)]
+    for cu in cuts:
+        boolean(ob, cu)
+    ob.data.transform(mathutils.Matrix.Translation((x * MM, y * MM, 0)))
+    ob["part"] = "Stud screw: stock MacBook thread and length, M2 female, A2 stainless"
+    return ob
+
+
+def magsafe_plug(name, at, c, materials):
+    """MagSafe 3 plug in the Mac's left side (`at` = centre of the port)."""
+    head = prism(name + " head", rounded_rect(-6.0, -2.5, 6.0, 2.5, 2.4, 8), 0, 16.0, materials["rubber"], c)
+    tip = prism(name + " tip", rounded_rect(-4.6, -1.3, 4.6, 1.3, 1.25, 8), -0.6, 0.0, materials["steel"], c)
+    ob = join([head, tip], name)
+    place(ob, at, "-X", spin=math.pi / 2)
     return ob
 
 

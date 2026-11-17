@@ -101,13 +101,11 @@ if view == "hero":
 elif view == "hero_left":
     camera((-230, -150, 120), (40, 90, 14), lens=50, fstop=5.6)
 elif view == "insert":
+    # the Mac lifted off: its four stud screws line up with the holes in the top plate
     hide("External cables")
-    move(col("MacBook Pro 16").objects, dy=-120)
-    for o in col("Mount").objects:          # the Mac's underside holds the pawls down
-        if "pawl" in o.name:
-            o.location.z -= 3.6 * MM
+    move(col("MacBook Pro 16").objects, dz=38)
     bpy.data.objects["Lid hinge"].rotation_euler = (0, 0, 0)    # lid closed
-    camera((540, 560, 330), (185, 140, 8), lens=42, fstop=8)
+    camera((-95, -120, 34), (30, 25, 17), lens=50, fstop=8)
 elif view == "exploded":
     hide("MacBook Pro 16")
     hide("External cables")
