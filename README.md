@@ -55,7 +55,7 @@ On the left is the HackRF PCB built from Great Scott Gadgets' KiCad design, with
 | Layer | Thickness | Notes |
 |---|---|---|
 | MacBook Pro 16" | 16.8 mm | Apple's published 355.7 × 248.1 × 16.8 mm |
-| Mac feet + silicone rails | 0.6 + 2.0 mm | Leaves an air gap for the Mac's own intake; the jaw flanges (1.2 mm) sit in this gap at the edges |
+| Mac feet + silicone pads | 1.9 + 0.7 mm | The Mac's own feet (measured 1.9 mm) on thin silicone pads leave a 2.6 mm air gap for its intake; the jaw flanges (1.2 mm) and the stud screws sit in this gap |
 | Top plate | 1.0 mm | Anodised aluminium, grounded, sealed (no openings) |
 | Cable zone | 2.4 mm | MHF4 connectors (1.2 mm mated) and two crossing layers of 1.13 mm micro-coax |
 | Boards | 1.6 mm | Chips-down; PCB back at 8.4 mm |
@@ -96,22 +96,22 @@ The sled is **bolted to the Mac through four of the Mac's own bottom-case screw 
 - instead of the pentalobe head, a Ø4 mm body with 3.5 mm wrench flats that bridges the 2.6 mm gap between the Mac's bottom and the sled's top plate (the same height as the Mac's feet on the silicone rails, so the Mac still sits on its feet);
 - an M2 female thread, 2.2 mm deep, in the bottom of the body.
 
-An ISO 14581 M2×14 countersunk screw goes up from under the sled, flush with the base's underside, through a solid column milled in the base and through the top plate, into each stud. Tightening it pulls the stud and the Mac down onto the top plate. The check measures 2.2 mm of thread engaged in each stud (1.1 × d in stainless; it requires 1.0 × d). To keep the columns clear, the dock board moved 5 mm back, the fin stack starts 8 mm further right, the blower moved 2 mm forward and heat pipe 3 was re-routed.
+An ISO 14581 M2×14 countersunk screw goes up from under the sled, flush with the base's underside, through a solid column milled in the base and through the top plate, into each stud. Tightening it pulls the stud and the Mac down onto the top plate. The check measures 2.2 mm of thread engaged in each stud (1.1 × d in stainless; it requires 1.0 × d). To keep the columns clear, the dock board moved 5 mm back, the blower moved 4 mm forward and heat pipe 3 was re-routed.
 
-**Before machining, take one stock screw out of your Mac and measure it.** The thread (Apple's pentalobe screws are not a standard metric size), the thread length and the screw positions in `MAC_STUDS` are **estimates** in this model. The check verifies the sled against those numbers, not against your Mac. Torque the studs into the Mac by hand to the same feel as the stock screws; the M2 bolts take the load.
+The screw positions are **measured** from Apple's own photo of the underside (see [docs/mac_measurements.md](docs/mac_measurements.md)). **Before machining, take one stock screw out of your Mac and measure it:** the thread (Apple's pentalobe screws are not a standard metric size) and the thread length cannot be measured from photos. Torque the studs into the Mac by hand to the same feel as the stock screws; the M2 bolts take the load.
 
 **Cradle.**
 
 | Part | What it does |
 |---|---|
-| 4 side jaws (6061, black anodised) | A web outside the Mac's side and a 1.2 mm flange on the top plate, under the Mac's edge. Each is screwed down with two ISO 14581 M2×6 countersunk screws through the flange and the top plate into a boss in the sled wall. A 0.8 mm TPU 85A liner on the inside is squeezed 0.15 mm per side by the Mac (the jaws sit 0.15 mm inside the free width). The check measures that squeeze and that a Mac 0.1 mm narrower per side would still be clamped. The front jaws rise 7 mm up the Mac's side. Near the ports, the rear jaws rise only 3 mm, below the lowest plug overmould. |
+| 4 side jaws (6061, black anodised) | A web outside the Mac's side and a 1.2 mm flange on the top plate, under the Mac's edge. Each is screwed down with ISO 14581 M2×6 countersunk screws (one on the front-left jaw, where the dock's USB-C ports fill the wall, two elsewhere) through the flange and the top plate into a boss in the sled wall. A 0.8 mm TPU 85A liner on the inside is squeezed 0.15 mm per side by the Mac (the jaws sit 0.15 mm inside the free width). The check measures that squeeze and that a Mac 0.1 mm narrower per side would still be clamped. The front jaws rise 7 mm up the Mac's side. Near the ports, the rear jaws rise only 3 mm, below the lowest plug overmould. |
 | 2 rear corner stops | Returns on the rear jaws that wrap 22 mm around each rear corner, 3 mm high, below the path of the lid's lower edge. |
 | 2 front stops | A spring-loaded POM pawl in an anodised block in front of each front corner, 2.5 mm above the Mac's bottom face. A compression spring (Ø2.6 × 0.3 mm wire) holds it up and a Ø1 × 8 mm ISO 2338 pin in a slot keeps it in. Each block is held by two ISO 4762 M2×8 screws into the sled's front wall. Pressing both pawls down lets the Mac slide out forward instead of being lifted. |
-| 2 silicone rails | The Mac's feet sit on these (2 mm), leaving an air gap for its own intake. |
+| 2 silicone pads | The Mac's feet (Ø19 mm, 1.9 mm tall, measured) sit on these 0.7 mm pads, leaving a 2.6 mm air gap for its intake. |
 
-**Fitting the Mac.** Swap the four corner screws for the stud screws, lower the Mac straight down between the jaws (the check lifts it 40 mm and back without a collision), and fit the four M2 bolts from underneath. With the mount, the sled's outline grows to 362.0 × 257.9 mm (jaws 3.15 mm per side, front stops 6.5 mm at the front, corner stops 3.3 mm at the back).
+**Fitting the Mac.** Swap the four corner screws (10.3 mm in from the sides, 10.4 mm from the front and 10.8 mm from the rear) for the stud screws, lower the Mac straight down between the jaws (the check lifts it 40 mm and back without a collision), and fit the four M2 bolts from underneath. With the mount, the sled's outline grows to 362.0 × 257.9 mm (jaws 3.15 mm per side, front stops 6.5 mm at the front, corner stops 3.3 mm at the back).
 
-**Real MacBook Pro dimensions.** Apple publishes only the envelope (355.7 × 248.1 × 16.8 mm). It has no dimensioned drawing for the 16" model: its [dimensional drawings page](https://developer.apple.com/accessories/dimensional-drawings/) currently lists only the MacBook Neo. The plan-view corner radius, the edge fillets, the foot positions and the port positions in `MAC` and `MAC_PORTS` in `sled_config.py` are therefore **estimates**. Measure your Mac, update those values, rebuild, and run the check before cutting metal. The check then re-verifies the fit against the new numbers.
+**Real MacBook Pro dimensions.** Apple publishes only the envelope (355.7 × 248.1 × 16.8 mm) and no dimensioned drawing for the 16" model; its [dimensional drawings page](https://developer.apple.com/accessories/dimensional-drawings/) lists only the MacBook Neo. Everything else was **measured from Apple's own straight-on photos**, scaled to the published envelope (about ±0.5 mm). That covers the bottom-case screw positions, the feet, the corner radius, the side intake vents and the port positions. The method and every number are in [docs/mac_measurements.md](docs/mac_measurements.md). The front jaws stop short of the Mac's side intake vents (25.5 to 150.5 mm from the front), and the check keeps the air path to those vents clear. Only the edge fillets and the plug overmould sizes are still estimates.
 
 ## Fasteners and connectors
 
@@ -119,7 +119,7 @@ An ISO 14581 M2×14 countersunk screw goes up from under the sled, flush with th
 |---|---|---|---|
 | M2×5 pan head, Torx T6 | ISO 14583, A2 | 42 | Every board into its standoff bosses (3.1 to 3.4 mm of thread engaged) |
 | M2×4 pan head, Torx T6 | ISO 14583, A2 | 11 | Top plate into the wall bosses (3.0 mm engaged) |
-| M2×6 countersunk, Torx T6 | ISO 14581, A2 | 8 | Jaws through the top plate into the wall bosses (3.8 mm engaged) |
+| M2×6 countersunk, Torx T6 | ISO 14581, A2 | 7 | Jaws through the top plate into the wall bosses (3.8 mm engaged) |
 | M2×8 socket head | ISO 4762, A2 | 4 | Front-stop blocks into the front wall and a boss behind it (3.7 mm engaged) |
 | M2×14 countersunk, Torx T6 | ISO 14581, A2 | 4 | From under the sled into the Mac's stud screws (2.2 mm engaged) |
 | Stud screw | Custom, A2; stock MacBook thread and length, M2 female | 4 | Replace the Mac's four corner bottom-case screws |
@@ -182,7 +182,7 @@ These are planning numbers, not measurements. Measure each board before sizing t
 | Flipper One | Announced specs (155 × 67 × 40 mm cased, still preliminary) | Placeholder bay, 140 × 65 mm. |
 | Airspy HF+ Discovery | Published case size 60 × 45 × 10 mm | Approximated bare board. |
 | Dock board, Proxmark3 RDV4, Wi-Fi, nRF52840 BLE, LoRa, USB hub | Typical module sizes | Placeholders. |
-| MacBook Pro 16" | Apple's published envelope; edge radii, feet and ports estimated | Body with filleted edges and port openings, keyboard and lid. |
+| MacBook Pro 16" | Apple's published envelope; screws, feet, corner radius, vents and ports measured from Apple's photos ([docs/mac_measurements.md](docs/mac_measurements.md)) | Body with filleted edges, port openings, vents, feet and bottom-case screws, keyboard and lid. |
 | Screws, washers, pins | ISO 14583, ISO 14581, ISO 4762, DIN 433, ISO 2338 | Modelled from the standards' dimension tables. |
 | SMA, MHF4, USB-C | SMA bulkhead datasheet dimensions, I-PEX MHF4, USB Type-C specification | Modelled from published dimensions. |
 
@@ -234,7 +234,7 @@ To edit it by hand, open `model/osint_sled.blend`. To change the design, edit `s
 - **The stud screws are custom parts.** They must copy a measured stock screw's thread and length exactly. A stud that is too long can damage the Mac. Do not use a longer stock-thread screw to "reach" the sled.
 - **Transmit.** Keep the HackRF's hardware TX-disable on while the receivers are listening. Transmitting without a licence, and acting on intercepted communications, is illegal in most jurisdictions.
 - **Flipper One** isn't in mass production yet, and its published dimensions may change.
-- **MacBook dimensions beyond the envelope are estimates.** See [MacBook mount](#macbook-mount). The jaw heights near the ports assume plug overmoulds start at least 3.3 mm above the Mac's bottom face.
+- **MacBook dimensions are measured from photos, not a drawing** (±0.5 mm). See [docs/mac_measurements.md](docs/mac_measurements.md). Plug overmould sizes are typical values.
 - **Board-to-dock USB wiring is not modelled yet.** The boards need USB links to the dock board (an FFC under the top plate is the likely route). The cable zone above the boards is already full of coax crossings, so adding the FFC will probably take about 0.2 mm more height.
 
 ## Credits and licences

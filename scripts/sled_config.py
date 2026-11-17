@@ -7,7 +7,7 @@ read from here, so a dimension only ever lives in one place.
 
 # ------------------------------------------------------------------ envelope
 W, D = 355.7, 248.1          # MacBook Pro 16" footprint (Apple's published size)
-CORNER_R = 10.0              # plan-view corner radius of the plates (matches the Mac, see MAC)
+CORNER_R = 15.0              # plan-view corner radius of the plates (matches the Mac, see MAC)
 WALL_T = 3.0                 # perimeter wall thickness
 
 BASE_T = 2.5                 # 6061 base plate; heat pipes sit flush in grooves
@@ -30,8 +30,8 @@ TOP_Z1 = TOP_Z0 + 1.0        # 1 mm top plate
 assert Z_HIGH + COAX_R < TOP_Z0, "coax crossings must clear the top plate"
 assert PCB_TOP + MHF4_MATED_H < TOP_Z0
 
-RAIL_T = 2.0                 # rubber rails the Mac sits on
-MAC_FOOT_T = 0.6
+RAIL_T = 0.7                 # silicone pads the Mac's feet sit on
+MAC_FOOT_T = 1.9             # measured: the Mac's rubber feet stand 1.9 mm proud (Apple side photo)
 MAC_Z = TOP_Z1 + RAIL_T + MAC_FOOT_T
 
 FOOT_H = 4.0                 # sled feet: 4 mm intake gap under the blower grille
@@ -52,19 +52,19 @@ HP_W, HP_T = 6.0, 1.7        # flattened heat pipe section
 PAD_T = 0.5                  # thermal pad between chip and pedestal
 PAD_GAP = 0.05               # compression allowance
 
-BLOWER = dict(x0=296.0, y0=184.0, size=52.0, h=6.5, r=5.0)   # 52 x 52 x 6.5 mm laptop blower
+BLOWER = dict(x0=296.0, y0=182.0, size=52.0, h=6.5, r=5.0)   # 52 x 52 x 6.5 mm laptop blower
 BLOWER_C = (BLOWER["x0"] + BLOWER["size"] / 2, BLOWER["y0"] + BLOWER["size"] / 2)
-PLENUM = dict(x0=20.0, x1=BLOWER["x0"], y0=222.0, y1=233.0)    # blower -> fins duct
-FINS = dict(x0=20.0, x1=294.0, y0=233.0, y1=D - WALL_T - 0.1, pitch=1.35, t=0.3)
+PLENUM = dict(x0=16.0, x1=BLOWER["x0"], y0=222.0, y1=233.0)    # blower -> fins duct
+FINS = dict(x0=16.0, x1=294.0, y0=233.0, y1=D - WALL_T - 0.1, pitch=1.35, t=0.3)
 SIDE_INTAKE = dict(y0=192.0, y1=232.0)                         # louvre in the right wall
-EXHAUST = dict(x0=20.0, x1=294.0)                               # opening in the rear wall
+EXHAUST = dict(x0=16.0, x1=294.0)                               # opening in the rear wall
 
 # Heat pipes run in grooves in the base plate (top flush with BASE_T), from
 # the hot spots to the fin stack. Polylines in plan view.
 HEAT_PIPES = [
     ("Heat pipe 1 (KrakenSDR bar)", [(150, 206), (28, 206), (28, 236.5), (170, 236.5)]),
     ("Heat pipe 2 (HackRF)", [(205, 169), (242, 169), (242, 243.5), (292, 243.5)]),
-    ("Heat pipe 3 (Flipper One)", [(76, 85), (10, 85), (10, 243.5), (60, 243.5)]),
+    ("Heat pipe 3 (Flipper One)", [(76, 85), (16, 85), (16, 243.5), (60, 243.5)]),
 ]
 
 # ------------------------------------------------------------------ boards
@@ -177,32 +177,40 @@ POWER_W = {
 }
 
 # ------------------------------------------------------------------ MacBook Pro 16"
-# Apple publishes only the envelope: 355.7 x 248.1 x 16.8 mm (16-inch, 2021 and
-# later). Apple has no dimensional drawing for it (developer.apple.com/accessories/
-# dimensional-drawings lists only the MacBook Neo), so every other number here
-# is an ESTIMATE from photos and replacement-part listings. Measure your own Mac
-# and update these before cutting metal; check_model.py re-verifies the fit.
+# Apple publishes the envelope (355.7 x 248.1 x 16.8 mm, 16-inch 2021 and later)
+# but no dimensioned drawing. The rest is MEASURED from Apple's own straight-on
+# photos (scale set by the published width and depth; see docs/mac_measurements.md):
+#   underside: support.apple.com/100572 (bottom case service guide), 0.219 mm/px,
+#              width/depth scales agree to 0.1 %
+#   sides:     support.apple.com/111901 (tech specs port images), 0.267 mm/px
+# Accuracy is about +-0.5 mm (one or two pixels); check against your own Mac.
 MAC = dict(
     W=W, D=D, H=16.8,            # published
-    base_h=10.6, lid_h=6.2,      # estimate (split of the 16.8 mm)
-    r_plan=10.0,                 # estimate: plan-view corner radius
+    base_h=12.6, lid_h=4.0,      # measured: lid/base seam in the side photo
+    r_plan=15.0,                 # measured: plan corner radius 16.0 front, 13.9 rear (bottom photo)
     r_bot=2.5,                   # estimate: bottom edge fillet
     r_top=1.2,                   # estimate: top deck edge fillet
-    foot_d=15.0, foot_inset=(25.0, 22.0),   # estimate: 4 round feet, centre inset from side / front-rear
+    foot_d=19.0, foot_inset=(26.2, 26.7),   # measured: 4 round feet, centres 26.2 mm from the sides, 26.4/27.0 mm from front/rear
     mass_kg=2.14,                # published (M4 Pro)
 )
-# Side ports (estimate): (name, side, y of centre from the FRONT edge, opening w x h,
-# mating plug overmould w x h). Centres sit MAC_PORT_CZ above the Mac's bottom face.
+# Bottom-case screws (measured): x 10.0/10.3 and 119.0/119.6 mm from each side,
+# 10.4 mm from the front (4 short) and 10.8 mm from the rear (4 long), heads ~3.3 mm.
+MAC_BOTTOM_SCREWS = [(10.3, 10.4), (119.3, 10.4), (W - 119.3, 10.4), (W - 10.3, 10.4),
+                     (10.3, D - 10.8), (119.3, D - 10.8), (W - 119.3, D - 10.8), (W - 10.3, D - 10.8)]
+# Side intake vents on the underside edge (measured): 25.5 to 150.5 mm from the front, both sides.
+MAC_VENTS = dict(y0=25.5, y1=150.5)
+# Side ports (measured centres, mm from the FRONT edge): (name, side, y, opening w x h, mating plug overmould w x h).
+# Overmould sizes are typical values for each connector type.
 MAC_PORTS = [
-    ("MagSafe 3", "L", 218.0, (9.6, 3.0), (12.0, 5.0)),
-    ("Thunderbolt 4 L1", "L", 193.0, (8.9, 3.2), (12.2, 6.5)),
-    ("Thunderbolt 4 L2", "L", 178.0, (8.9, 3.2), (12.2, 6.5)),
-    ("Headphone", "L", 152.0, (3.6, 3.6), (7.0, 7.0)),
-    ("HDMI", "R", 208.0, (14.4, 4.6), (21.0, 10.5)),
-    ("Thunderbolt 4 R", "R", 186.0, (8.9, 3.2), (12.2, 6.5)),
-    ("SDXC", "R", 157.0, (24.0, 2.2), (24.0, 2.1)),
+    ("MagSafe 3", "L", 212.5, (9.6, 3.0), (12.0, 5.0)),
+    ("Thunderbolt 4 L1", "L", 193.8, (8.9, 3.2), (12.2, 6.5)),
+    ("Thunderbolt 4 L2", "L", 178.8, (8.9, 3.2), (12.2, 6.5)),
+    ("Headphone", "L", 166.0, (3.6, 3.6), (7.0, 7.0)),
+    ("HDMI", "R", 212.3, (14.4, 4.6), (21.0, 10.5)),
+    ("Thunderbolt 4 R", "R", 193.8, (8.9, 3.2), (12.2, 6.5)),
+    ("SDXC", "R", 169.2, (24.0, 2.2), (24.0, 2.1)),
 ]
-MAC_PORT_CZ = 6.6                 # estimate: port centre height above the Mac's bottom face
+MAC_PORT_CZ = 8.4                 # measured: port centres above the Mac's bottom face
 MAC_PLUG_LEN = 40.0               # plug + strain relief sticking out of the side
 # Lid swing (estimate): when open, the display's lower edge drops behind the
 # base's rear face. Keep this box clear: up to 8 mm behind the rear face, from
@@ -221,20 +229,21 @@ LINER_SQUEEZE = 0.15         # interference per side: the jaws sit 0.15 mm close
                              # so the liners are compressed and clamp the Mac (modelled as overlap)
 MAC_WIDTH_TOL = 0.2          # estimate: total width tolerance of the Mac; worst case leaves 0.05 mm squeeze per side
 FLANGE_T = 1.2               # jaw flange on the top plate, under the Mac's edge (1.4 mm air gap left)
-FLANGE_W = 9.0               # flange reaches this far in under the Mac
+FLANGE_W = 6.0               # flange reaches this far in under the Mac
 JAWS = [   # side, y0, y1, top above the Mac's bottom face, rear corner return
-    dict(name="Jaw FL", side="L", y0=58.0, y1=90.0, top=7.0, rear=False),
-    dict(name="Jaw FR", side="R", y0=6.0, y1=30.0, top=7.0, rear=False),
+    dict(name="Jaw FL", side="L", y0=8.0, y1=25.0, top=7.0, rear=False),    # ends before the side intake vents
+    dict(name="Jaw FR", side="R", y0=12.0, y1=25.0, top=7.0, rear=False),
     dict(name="Jaw RL", side="L", y0=200.0, y1=D, top=3.0, rear=True),
     dict(name="Jaw RR", side="R", y0=220.0, y1=D, top=3.0, rear=True),
 ]
-REAR_RETURN = 22.0           # rear stop wraps 22 mm in from each side (12 mm of contact past the corner radius)
-JAW_SCREWS = {"Jaw FL": (63.0, 85.0), "Jaw FR": (12.0, 24.0), "Jaw RL": (206.0, 238.0), "Jaw RR": (233.0, 241.0)}
+REAR_RETURN = 28.0           # rear stop wraps 28 mm in from each side (about 14 mm of contact past the corner radius)
+JAW_SCREWS = {"Jaw FL": (10.0,),     # one screw: the dock's USB-C ports fill the wall behind
+               "Jaw FR": (15.0, 22.0), "Jaw RL": (206.0, 238.0), "Jaw RR": (233.0, 241.0)}
 JAW_SCREW_X = 4.0            # countersunk screws through the flange, top plate and into the wall boss
-LATCH = dict(x0=10.5, x1=25.5, y0=-6.5, z0=0.5,            # block in front of the sled's front wall (left; mirrored)
-             pawl_x=(14.5, 19.5), pawl_y=(-3.0, 0.0), pawl_up=2.5,  # pawl rises 2.5 mm above the Mac's bottom face
+LATCH = dict(x0=15.5, x1=30.5, y0=-6.5, z0=0.5,            # block in front of the sled's front wall (left; mirrored)
+             pawl_x=(19.5, 24.5), pawl_y=(-3.0, 0.0), pawl_up=2.5,  # pawl rises 2.5 mm above the Mac's bottom face
              pin_z=10.0, spring=dict(od=2.6, wire=0.3, turns=7),
-             screws=((13.0, 5.0), (22.5, 5.0)))          # (x, z) of the two M2 screws into the front wall
+             screws=((18.0, 5.0), (27.5, 5.0)))          # (x, z) of the two M2 screws into the front wall
 SILICONE_RAILS = [(16.0, 42.0), (W - 42.0, W - 16.0)]       # x ranges; the Mac's feet sit on these
 
 # ------------------------------------------------------------------ fasteners
@@ -260,8 +269,8 @@ MIN_ENGAGEMENT = 1.5         # x nominal diameter of thread engaged in aluminium
 # from under the sled, through a column milled in the base, pulls the stud down
 # onto the top plate. Screw POSITIONS are estimates (Apple publishes none):
 # measure your Mac's corner screws and update these before machining.
-MAC_STUDS = [  # (x, y) of the Mac screws used, in sled coordinates
-    (16.0, 9.5), (W - 16.0, 9.5), (16.0, D - 9.5), (W - 16.0, D - 9.5),
+MAC_STUDS = [  # (x, y) of the four corner screws, measured from Apple's bottom-case photo
+    (10.3, 10.4), (W - 10.3, 10.4), (10.3, D - 10.8), (W - 10.3, D - 10.8),
 ]
 STUD = dict(body_d=4.0, flats=3.5, thread_depth=2.2, apple_thread_d=1.4, apple_thread_len=4.0)
 COLUMN_R = 2.5               # solid column milled in the base under each stud, M2 clearance through it

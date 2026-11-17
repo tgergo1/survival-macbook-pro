@@ -31,7 +31,7 @@ from sled_config import (  # noqa: E402
     MHF4_RECEPT_H, PAD_GAP, PAD_T, PCB_T, PCB_TOP, PCB_Z0, PEDESTALS, PLENUM, RAIL_T,
     REAR_RETURN, SIDE_INTAKE, SILICONE_RAILS, SMA_FERRULE_X, SMA_HOLE_FLAT, SMA_HOLE_R, TOP_SCREWS,
     TOP_Z0, TOP_Z1, USBC, USBC_PORTS, W, WALL_BOSS_R, WALL_T, Z_HIGH, Z_LOW, Z_SMA,
-    COLUMN_R, MAC_STUDS, MIN_ENGAGEMENT_STEEL, SLED_FEET, STUD, STUD_BOLT_LEN,
+    COLUMN_R, MAC_STUDS, MIN_ENGAGEMENT_STEEL, SLED_FEET, STUD, STUD_BOLT_LEN, MAC_BOTTOM_SCREWS, MAC_VENTS,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -128,7 +128,7 @@ rbox("Proxmark RF window (PC)", 188, 12, 0.2, 248, 54, BASE_T - 0.2, M["window"]
 
 wall_z0, wall_z1 = BASE_T, TOP_Z0
 walls = rbox("Side walls", 0, 0, wall_z0, W, D, wall_z1, M["alu"], C_SLED, r=CORNER_R, bevel=0.3)
-boolean_cut(walls, rbox("cut", WALL_T, WALL_T, wall_z0 - 1, W - WALL_T, D - WALL_T, wall_z1 + 1, None, C_SLED, r=6))
+boolean_cut(walls, rbox("cut", WALL_T, WALL_T, wall_z0 - 1, W - WALL_T, D - WALL_T, wall_z1 + 1, None, C_SLED, r=CORNER_R - WALL_T))
 
 # bosses inside the wall: top-plate screws, jaw screws (vertical) and latch screws (horizontal)
 JAW_SCREW_PTS = []
@@ -495,7 +495,7 @@ cut_many(top, [clr_hole(x, y, TOP_Z0, TOP_Z1, "M2") for x, y in TOP_SCREWS + MAC
 for k, (x, y) in enumerate(TOP_SCREWS):
     screw("pan", "M2", 4, (x, y, TOP_Z1), "+Z", C_FAST, f"Screw M2x4 (top plate #{k + 1})", into="wall boss", grip=1.0)
 for i, (xa, xb) in enumerate(SILICONE_RAILS):
-    rbox(f"Silicone rail {i + 1}", xa, 12, TOP_Z1, xb, D - 12, TOP_Z1 + RAIL_T, M["silicone"], C_TOP, bevel=0.6)
+    rbox(f"Silicone rail {i + 1}", xa, 12, TOP_Z1, xb, D - 12, TOP_Z1 + RAIL_T, M["silicone"], C_TOP, bevel=0.2)
 
 # ================================================================ mount: jaws, rear stops, front latches
 JAW_Z1 = {}
@@ -513,7 +513,7 @@ def jaw(j):
     yo = y1 + (LINER_T + JAW_T if j["rear"] else 0)
     sq = LINER_SQUEEZE                     # jaws sit this much inside the Mac's free width
     xa, xb = sorted((sx(-LINER_T - JAW_T + sq), sx(-LINER_T + sq)))
-    objs = [rbox("web", xa, y0, TOP_Z0, xb, yo, z1, M["alu_dark"], C_STAGE)]
+    objs = [rbox("web", xa, y0, TOP_Z1, xb, yo, z1, M["alu_dark"], C_STAGE)]
     fa, fb = sorted((sx(-LINER_T - JAW_T + sq), sx(FLANGE_W)))
     objs.append(rbox("flange", fa, y0, TOP_Z1, fb, y1 if not j["rear"] else D - CORNER_R * 0.4, TOP_Z1 + FLANGE_T, M["alu_dark"], C_STAGE, r=0.8))
     if j["rear"]:
@@ -642,10 +642,16 @@ for i, (x, y) in enumerate([(fi_x, fi_y), (W - fi_x, fi_y), (fi_x, D - fi_y), (W
     f = lathe(f"Mac foot {i + 1}", [(0, MAC_Z - MAC_FOOT_T), (r - 0.4, MAC_Z - MAC_FOOT_T), (r, MAC_Z - MAC_FOOT_T + 0.3),
                                     (r, MAC_Z + 0.2), (0, MAC_Z + 0.2)], M["rubber"], C_MAC, seg=40)
     f.data.transform(mathutils.Matrix.Translation((x * MM, y * MM, 0)))
-STUD_NAMES = {(16.0, 9.5): "front left", (W - 16.0, 9.5): "front right", (16.0, D - 9.5): "rear left",
-              (W - 16.0, D - 9.5): "rear right"}
+for x, y in MAC_BOTTOM_SCREWS:          # stock pentalobe heads that stay in the Mac
+    if (x, y) not in MAC_STUDS:
+        h = lathe("Mac bottom-case screw", [(0, MAC_Z - 0.05), (1.65, MAC_Z - 0.05), (1.65, MAC_Z + 0.5), (0, MAC_Z + 0.5)],
+                  M["screw"], C_MAC, seg=24)
+        h.data.transform(mathutils.Matrix.Translation((x * MM, y * MM, 0)))
+for side in "LR":                       # side intake vents on the underside edge
+    xa, xb = (0.8, 2.7) if side == "L" else (W - 2.7, W - 0.8)
+    rbox(f"Mac intake vent ({side})", xa, MAC_VENTS["y0"], MAC_Z + 0.2, xb, MAC_VENTS["y1"], MAC_Z + 1.0, M["port"], C_MAC, r=0.9)
 for k, (x, y) in enumerate(MAC_STUDS):
-    tag = STUD_NAMES.get((x, y), f"#{k + 1}")
+    tag = ("front " if y < D / 2 else "rear ") + ("left" if x < W / 2 else "right")
     parts.stud_screw(f"Stud screw ({tag})", x, y, TOP_Z1, MAC_Z, STUD, C_MAC, M, C_STAGE)
     screw("csk", "M2", STUD_BOLT_LEN, (x, y, 0.0), "-Z", C_FAST, f"Screw M2x{STUD_BOLT_LEN} countersunk (stud bolt {tag})",
           into="stud screw (stainless)", grip=TOP_Z1, min_ratio=MIN_ENGAGEMENT_STEEL)
@@ -705,6 +711,10 @@ for pname, side, py, _, (ow, oh) in MAC_PORTS:   # plugs in the Mac's own ports
     xa, xb = (-MAC_PLUG_LEN, -0.05) if side == "L" else (W + 0.05, W + MAC_PLUG_LEN)
     cz = MAC_Z + MAC_PORT_CZ
     rbox(f"Keep-out Mac plug ({pname})", xa, py - ow / 2, cz - oh / 2, xb, py + ow / 2, cz + oh / 2, M["keepout"], C_KEEP)
+for side in "LR":                     # the Mac's side intake vents and the air path to them
+    xa, xb = (-10.0, 3.0) if side == "L" else (W - 3.0, W + 10.0)
+    rbox(f"Keep-out Mac intake vent ({side})", xa, MAC_VENTS["y0"], TOP_Z1 + 1.7, xb, MAC_VENTS["y1"], MAC_Z + MAC["r_bot"],
+         M["keepout"], C_KEEP)
 rbox("Keep-out lid swing", 0, D + 0.05, MAC_Z + LID_KEEPOUT["z_above_bottom"], W, D + LID_KEEPOUT["dy"], MAC_Z + 40,
      M["keepout"], C_KEEP)
 for o in C_KEEP.objects:

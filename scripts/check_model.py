@@ -321,7 +321,7 @@ for k in keepouts:
             continue
         if own and p.tag == own:
             continue
-        if p in mac and ("Mac plug" in k.name or "lid" in k.name):
+        if p in mac and ("Mac plug" in k.name or "lid" in k.name or "vent" in k.name):
             continue
         if k.bvh.overlap(p.bvh):
             fail(f"{p.name} is inside {k.name}")
