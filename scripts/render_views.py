@@ -16,7 +16,7 @@ import mathutils
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sled_config import D, LANES, MAC_Z, W, Z_SMA  # noqa: E402
 
-VIEWS = ("hero", "hero_left", "insert", "exploded", "layout", "thermal", "latch", "rear_stop", "sma", "fasteners", "reference")
+VIEWS = ("hero", "hero_left", "insert", "wiring", "exploded", "layout", "thermal", "latch", "rear_stop", "sma", "fasteners", "reference")
 ROOT = Path(__file__).resolve().parents[1]
 HDRI = ROOT / "build/hdri/studio_small_09_2k.hdr"
 HDRI_URL = "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/studio_small_09_2k.hdr"
@@ -107,11 +107,20 @@ elif view == "insert":
     move(col("MacBook Pro 16").objects, dz=38)
     bpy.data.objects["Lid hinge"].rotation_euler = (0, 0, 0)    # lid closed
     camera((-95, -120, 34), (30, 25, 17), lens=50, fstop=8)
+elif view == "wiring":
+    # top plate off: the USB flat-flex runs (stuck to its underside) over the boards and the RF pigtails
+    for c in ("MacBook Pro 16", "Top plate", "Mount", "External cables", "Bridge"):
+        hide(c)
+    for o in col("Fasteners").objects:
+        if "top plate" in o.name or "countersunk" in o.name or "bridge" in o.name:
+            o.hide_render = True
+    camera((420, -160, 300), (170, 110, 8), lens=38, fstop=11)
 elif view == "exploded":
     hide("MacBook Pro 16")
     hide("External cables")
     move(col("Bridge").objects, dx=-70)
     move(col("Top plate").objects, dz=110)
+    move(col("USB wiring").objects, dz=110)
     move(col("Mount").objects, dz=150)
     for o in col("Mount").objects:
         if "Latch" in o.name:
@@ -169,7 +178,7 @@ elif view == "reference":
         if c.name not in ("Reference - real assets", "Stage"):
             hide(c.name)
     hide("Reference - real assets", False)
-    camera((-105, -100, 250), (-105, 115, 0), lens=40)
+    camera((-110, -170, 300), (-110, 80, 0), lens=35)
 
 scene.render.engine = "CYCLES"
 try:

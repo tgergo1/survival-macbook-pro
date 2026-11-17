@@ -22,6 +22,9 @@ A ~12 mm machined-aluminium sled that sits under a 16" MacBook Pro and holds a f
 | ![Front stop, front-left jaw and stud screw](renders/render_latch.png) | ![Rear corner stop](renders/render_rear_stop.png) |
 | ![SMA bulkheads](renders/render_sma.png) | ![HackRF screw, washer and boss](renders/render_fasteners.png) |
 
+### USB wiring: flat-flex runs from the dock and the hub to every board (top plate removed)
+![USB flat-flex wiring](renders/render_wiring.png)
+
 ### Exploded: base plate with pocket walls and thermal layer, boards with RF pigtails and their screws, top plate and its screws, jaws, front stops and the bridge
 ![Exploded view](renders/render_exploded.png)
 
@@ -45,7 +48,7 @@ Rear edge (hinge side) is at the top, the SMA bulkheads are on the right and the
 ![Thermal layer](renders/render_thermal.png)
 
 ### Real downloaded assets
-On the left is the HackRF PCB built from Great Scott Gadgets' KiCad design, with 311 components given standard KiCad 3D models. On the right is the official Flipper Zero body model.
+At the back is the HackRF PCB built from Great Scott Gadgets' KiCad design, with 311 components given standard KiCad 3D models. On the right is the official Flipper Zero body model, and in front is the official Flipper One B.1 enclosure, which sets the size of the Flipper One bay.
 ![Reference assets](renders/render_reference.png)
 
 ---
@@ -57,13 +60,13 @@ On the left is the HackRF PCB built from Great Scott Gadgets' KiCad design, with
 | MacBook Pro 16" | 16.8 mm | Apple's published 355.7 × 248.1 × 16.8 mm |
 | Mac feet + silicone pads | 1.9 + 0.7 mm | The Mac's own feet (measured 1.9 mm) on thin silicone pads leave a 2.6 mm air gap for its intake; the jaw flanges (1.2 mm) and the stud screws sit in this gap |
 | Top plate | 1.0 mm | Anodised aluminium, grounded, sealed (no openings) |
-| Cable zone | 2.4 mm | MHF4 connectors (1.2 mm mated) and two crossing layers of 1.13 mm micro-coax |
+| Cable zone | 2.6 mm | MHF4 connectors (1.2 mm mated), two crossing layers of 1.13 mm micro-coax, and two 0.1 mm layers of USB flat-flex bonded under the top plate |
 | Boards | 1.6 mm | Chips-down; PCB back at 8.4 mm |
 | Pocket zone | 4.3 mm | Shield cans and ICs inside milled pocket walls, on pedestals |
 | Base plate | 2.5 mm | 6061 with grooves for flush heat pipes; window for the Proxmark |
 | Sled feet | 4.0 mm | Intake gap under the blower grille |
-| **Sled** | **11.8 mm** (+4 mm feet) | |
-| **Total with the Mac** | **≈ 35 mm** | |
+| **Sled** | **12.0 mm** (+4 mm feet) | |
+| **Total with the Mac** | **≈ 35.4 mm** | |
 
 Every dimension lives in [`scripts/sled_config.py`](scripts/sled_config.py).
 
@@ -72,6 +75,7 @@ Every dimension lives in [`scripts/sled_config.py`](scripts/sled_config.py).
 - **Chips-down boards in shielded pockets.** Every board mounts upside down on a milled aluminium wall that runs under its edge. The board's ground plane closes the pocket, so each de-cased radio gets its own shielded compartment. Where the real HackRF has parts at its edge, the wall is notched automatically around them.
 - **Pedestals on heat pipes.** Shield cans and hot ICs press onto aluminium pedestals through 0.5 mm thermal pads. `build_sled.py` sizes each pedestal from the actual chip depth it measures in the model. The KrakenSDR's five tuner cans share **one isothermal bar**, so all five tuners sit at the same temperature (temperature differences between tuners cause phase drift).
 - **Heat path.** Three flattened 6 × 1.7 mm heat pipes sit flush in base-plate grooves: KrakenSDR bar, both HackRF hot spots, and the Flipper One SoC. They carry heat to a fin stack along the rear edge. A 52 × 52 × 6.5 mm blower draws air through a grille in the base plate (4 mm feet) and through louvres in the right-hand wall (so it still breathes on a lap or a soft surface). It blows through an open plenum into the fins. An angled deflector turns the exhaust down and away from the underside of the Mac.
+- **USB wiring.** Every board gets USB 2.0 over a 6-way, 0.5 mm-pitch flat-flex cable (VBUS, D+, D−, three grounds; 3.5 × 0.1 mm), bonded to the underside of the top plate. Runs along x use the upper layer and runs along y the lower one, so crossings never stack on one layer. At each end the cable drops into a 0.9 mm-high back-flip FPC connector on the board's back. The dock feeds the KrakenSDR, the HackRF and the USB hub directly. The hub feeds the Airspy, the Wi-Fi adapter, the Proxmark, both Flippers, the BLE dongle and the LoRa node. The design check treats each run like any other part.
 - **RF routing.** All RF runs on MHF4 pigtails (1.2 mm mated height, so they fit under the top plate) to 11 rear-mount SMA bulkhead jacks on the right edge. Each pigtail runs along y on an upper layer, makes one 5 mm-radius bend, then runs along x on a lower layer, and finishes with an S-bend down into the jack's crimp ferrule. No two cables share a lane, so every crossing is one cable over another and never through it. Board mounting screws are placed so that no cable runs over a screw head.
 - **Phase-matched KrakenSDR.** The KrakenSDR's bulkheads are spaced at the same 27.8 mm pitch as its channels. Because of that, all five Kraken pigtails have exactly the same routed length (364.1 mm in the current model, MHF4 plug to SMA crimp ferrule) with no slack loops. Order them as a phase-matched set.
 - **USB with enough bandwidth.** One USB 2.0 bus carries 480 Mbit/s, but the HackRF alone can use about 320 Mbit/s and the KrakenSDR about 200 Mbit/s. The dock board therefore uses a Thunderbolt device controller with a PCIe downstream (Intel JHL7440 class) feeding two extra xHCI controllers, so each of these gets a USB root of its own:
@@ -180,10 +184,14 @@ These are planning numbers, not measurements. Measure each board before sizing t
 |---|---|---|
 | HackRF | [greatscottgadgets/hackrf](https://github.com/greatscottgadgets/hackrf) `hardware/hackrf-one` KiCad PCB → STEP → glTF | **Real board.** HackRF Pro board files aren't in the repo, so the HackRF One PCB stands in (same 120 × 75 mm outline). The GSG footprints carry no 3D models, so `patch_hackrf_models.py` maps them to standard KiCad models. Edge SMA jacks and micro-USB are removed. |
 | Flipper Zero | [flipperdevices/flipperzero-3d-models](https://github.com/flipperdevices/flipperzero-3d-models) body STEP | **Real body**, shown for reference only. Flipper doesn't publish the internals; the sled has a sized bare-board bay. |
-| KrakenSDR | Official enclosure drawing (167.2 × 104.5 mm body, 5 channels on ~27.8 mm pitch) | Bare board and shield cans approximated from those dimensions. |
-| Flipper One | Announced specs (155 × 67 × 40 mm cased, still preliminary) | Placeholder bay, 140 × 65 mm. |
-| Airspy HF+ Discovery | Published case size 60 × 45 × 10 mm | Approximated bare board. |
-| Dock board, Proxmark3 RDV4, Wi-Fi, nRF52840 BLE, LoRa, USB hub | Typical module sizes | Placeholders. |
+| KrakenSDR | Official enclosure drawing (167.2 × 104.5 mm body, 5 channels on ~27.8 mm pitch) | Bare board and shield cans sized from that drawing; KrakenRF publishes no PCB files. |
+| Flipper One | [flipperdevices/flipperone-mechanics](https://github.com/flipperdevices/flipperone-mechanics) B.1 enclosure STEP (154.9 × 67.1 × 49.3 mm), shown in the reference view | Bay sized from the official enclosure. Flipper hasn't released the mainboard as a 3D file yet; its layout is on Altium 365, behind a sign-in. |
+| Airspy HF+ Discovery | Airspy's published case size, 60 × 45 × 10 mm | Board sized to fit inside it (55 × 40 mm). |
+| Proxmark3 RDV4 | Lab401's spec, 87 × 54 × 10 mm | Board at that size. |
+| BLE sniffer | Nordic nRF52840 Dongle (PCA10059), 46 × 15.24 mm | Board at that size; it has no mounting holes, so a VHB pad holds it. |
+| LoRa node | RAKwireless RAK4631 core (20 × 30 mm) on a RAK19003 mini base (35 × 30 mm), from the datasheets | Boards at those sizes. |
+| Wi-Fi adapter | Generic MT7612U-class USB adapter | Sized placeholder (70 × 25 mm). |
+| Dock board, USB hub | Custom boards in this design | Sized to their parts. |
 | MacBook Pro 16" | Apple's published envelope; screws, feet, corner radius, vents and ports measured from Apple's photos ([docs/mac_measurements.md](docs/mac_measurements.md)) | Body with filleted edges, port openings, vents, feet and bottom-case screws, keyboard and lid. |
 | Screws, washers, pins | ISO 14583, ISO 14581, ISO 4762, DIN 433, ISO 2338 | Modelled from the standards' dimension tables. |
 | SMA, MHF4, USB-C | SMA bulkhead datasheet dimensions, I-PEX MHF4, USB Type-C specification | Modelled from published dimensions. |
@@ -195,6 +203,7 @@ model/osint_sled.blend         Blender scene (collections: chassis, thermal, boa
                                mount, Mac, external cables, keep-out envelopes, reference)
 model/assets/hackrf-one.glb    HackRF PCB with components (from the KiCad design)
 model/assets/flipper-zero.glb  Flipper Zero body (official model)
+model/assets/flipper-one.glb   Flipper One B.1 enclosure (official model)
 renders/                       Cycles renders used above
 scripts/sled_config.py         Every dimension, board, lane and pedestal in one place
 scripts/build_sled.py          Builds the whole scene from sled_config.py
@@ -204,7 +213,7 @@ scripts/check_model.py         Design-rule check: collisions, thread engagement,
                                keep-outs, heat pipes, Kraken phase matching, power plan
 scripts/power_plan.py          One-cable power sharing and load shedding per charger size
 scripts/render_views.py        Renders a view (Cycles, studio HDRI): hero | hero_left | insert | exploded |
-                               layout | thermal | latch | rear_stop | sma | fasteners | reference
+                               layout | wiring | thermal | latch | rear_stop | sma | fasteners | reference
 scripts/fetch_assets.sh        Re-downloads the sources and regenerates model/assets/
 scripts/patch_hackrf_models.py Adds standard KiCad 3D models to the HackRF footprints
 ```
@@ -237,13 +246,14 @@ To edit it by hand, open `model/osint_sled.blend`. To change the design, edit `s
 - **Transmit.** Keep the HackRF's hardware TX-disable on while the receivers are listening. Transmitting without a licence, and acting on intercepted communications, is illegal in most jurisdictions.
 - **Flipper One** isn't in mass production yet, and its published dimensions may change.
 - **MacBook dimensions are measured from photos, not a drawing** (±0.5 mm). See [docs/mac_measurements.md](docs/mac_measurements.md). Plug overmould sizes are typical values.
-- **Board-to-dock USB wiring is not modelled yet.** The boards need USB links to the dock board (an FFC under the top plate is the likely route). The cable zone above the boards is already full of coax crossings, so adding the FFC will probably take about 0.2 mm more height.
+- **The nRF52840 Dongle's PCB antenna** cannot work inside the shielded sled. It needs re-working to a pigtail (or swap to a module with an RF connector). The RAK4631 uses a u.FL-class connector, not MHF4, which needs a 2.5 mm mated height; the model shows MHF4.
 
 ## Credits and licences
 
 The original design files and scripts in this repository are released under the [MIT licence](LICENSE). The repo also bundles third-party geometry, which stays under its own licence:
 
 - **HackRF One hardware** © Great Scott Gadgets, [CERN-OHL-P-2.0](https://github.com/greatscottgadgets/hackrf/blob/master/hardware/hackrf-one/LICENSE). It is in `model/assets/hackrf-one.glb` and the `.blend`.
+- **Flipper One enclosure (B.1)** © Flipper Devices, [CERN-OHL-P-2.0](https://github.com/flipperdevices/flipperone-mechanics/blob/dev/LICENSE). It is in `model/assets/flipper-one.glb` and the `.blend`.
 - **Flipper Zero 3D models** © Flipper Devices, [GPL-3.0](https://github.com/flipperdevices/flipperzero-3d-models/blob/master/LICENSE). It is in `model/assets/flipper-zero.glb` and the `.blend`.
 - **KiCad 3D component models**, [CC-BY-SA 4.0 with the KiCad libraries exception](https://www.kicad.org/libraries/license/). These are embedded in the HackRF asset.
 - KrakenSDR dimensions come from KrakenRF's published drawing. The drawing itself is not included.
