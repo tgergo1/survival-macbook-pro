@@ -7,7 +7,7 @@ read from here, so a dimension only ever lives in one place.
 
 # ------------------------------------------------------------------ envelope
 W, D = 355.7, 248.1          # MacBook Pro 16" footprint (Apple's published size)
-CORNER_R = 9.0               # plan-view corner radius of the plates
+CORNER_R = 10.0              # plan-view corner radius of the plates (matches the Mac, see MAC)
 WALL_T = 3.0                 # perimeter wall thickness
 
 BASE_T = 2.5                 # 6061 base plate; heat pipes sit flush in grooves
@@ -39,9 +39,12 @@ FOOT_H = 4.0                 # sled feet: 4 mm intake gap under the blower grill
 # ------------------------------------------------------------------ RF edge
 SMA_X = W                    # bulkheads on the right-hand wall
 Z_SMA = 7.0                  # bulkhead centre height (hole Ø6.5 fits the 8.3 mm wall)
-SMA_HOLE_R = 3.25
-CABLE_DESCENT_X = 346.0      # cables drop from Z_LOW to Z_SMA after this x
-BOARD_MAX_X = 344.0          # boards stay left of the cable descent zone
+SMA_HOLE_R = 3.25            # 6.5 mm D-hole for the 1/4-36 barrel
+SMA_HOLE_FLAT = 3.0          # D-flat 3.0 mm above the axis (anti-rotation)
+SMA_INSIDE = 8.0             # flange + body + crimp ferrule behind the panel (parts.SMA)
+SMA_FERRULE_X = W - WALL_T - SMA_INSIDE   # pigtail enters the ferrule here
+CABLE_DESCENT_X = SMA_FERRULE_X - 7.5     # S-bend from Z_LOW down to Z_SMA (bend R > 5x coax OD)
+BOARD_MAX_X = 336.0          # boards stay left of the cable descent zone
 CORNER_R_CABLE = 5.0         # bend radius at each cable corner (>= 5x coax OD)
 
 # ------------------------------------------------------------------ thermal
@@ -80,9 +83,11 @@ BOARDS = [
     dict(name="USB 2.0 hub (low-rate devices)", rect=(175, 114, 295, 134),
          chips=[(205, 124, 7, 7, 0.9), (255, 124, 5, 5, 0.9)]),
     dict(name="Flipper One (bay placeholder, board TBD)", rect=(6, 45, 146, 110), mat="pcb_purple",
+         holes=[(9, 48), (143, 48), (9, 107), (141, 95)],
          chips=[(71, 77, 15, 15, 1.2), (100, 77, 12, 10, 1.0), (100, 95, 12, 10, 1.0), (125, 60, 30, 22, 1.4)],
          ufl={"Flipper One LTE": (136, 100), "Flipper One GNSS": (126, 100)}),
     dict(name="Airspy HF+ Discovery (bare)", rect=(175, 64, 230, 104),
+         holes=[(178, 71.5), (222, 71.5), (178, 99), (219, 99)],
          chips=[(202, 84, 7, 7, 0.9)], cans=[(190, 84, 14, 16, 2.0)], ufl={"Airspy HF+": (226, 96)}),
     dict(name="Wi-Fi adapter (bare)", rect=(240, 80, 310, 105),
          chips=[(270, 92, 8, 8, 0.9)], ufl={"Wi-Fi": (305, 92)}),
@@ -90,14 +95,16 @@ BOARDS = [
          chips=[(205, 40, 14, 14, 1.4), (240, 40, 8, 8, 1.0)]),
     dict(name="Flipper Zero (bare-board bay)", rect=(264, 10, BOARD_MAX_X, 46),
          chips=[(296, 28, 10, 10, 1.0), (326, 28, 6, 6, 1.0)]),
-    dict(name="BLE sniffer nRF52840", rect=(300, 120, BOARD_MAX_X, 138),
-         chips=[(318, 129, 7, 7, 0.9)]),
-    dict(name="LoRa node nRF52840 + SX1262", rect=(312, 150, 342, 173),
-         chips=[(327, 161, 8, 8, 0.9)], ufl={"LoRa": (338, 168)}),
+    dict(name="BLE sniffer nRF52840", rect=(296, 120, BOARD_MAX_X, 138),
+         holes=[(299, 127), (333, 127)],
+         chips=[(316, 129, 7, 7, 0.9)]),
+    dict(name="LoRa node nRF52840 + SX1262", rect=(304, 150, BOARD_MAX_X, 173),
+         chips=[(320, 161, 8, 8, 0.9)], ufl={"LoRa": (330, 168)}),
     # Dock board: Thunderbolt device controller with PCIe out to two extra xHCI
     # controllers, so the HackRF and the KrakenSDR each get their own USB 2.0
     # root (480 Mbit/s each), plus USB-C PD input and the 5 V buck.
-    dict(name="Dock board (TB controller, 2x xHCI, PD, 5 V buck)", rect=(8, 8, 150, 42),
+    dict(name="Dock board (TB controller, 2x xHCI, PD, 5 V buck)", rect=(4, 8, 150, 42),
+         holes=[(11, 11), (147, 11), (11, 39), (147, 33)],
          chips=[(62, 25, 12, 12, 1.2), (98, 25, 7, 7, 0.9), (122, 25, 7, 7, 0.9),
                 (28, 30, 5, 5, 0.9), (40, 14, 7, 7, 3.0), (138, 25, 6, 6, 1.0)]),
 ]
@@ -107,7 +114,7 @@ HACKRF_KEEP_X = (0.0595, 0.1805)   # metres in the imported glTF: drops edge SMA
 
 # USB-C receptacles on the left wall (mid-mount, centred in the dock PCB)
 USBC_PORTS = [("USB-C PD in (up to 140 W)", 16.5), ("Thunderbolt / USB4 to Mac", 33.5)]
-USBC = dict(x0=1.5, x1=11.5, w=8.94, h=3.26)
+USBC = dict(x0=0.3, w=8.94, h=3.26)     # opening 0.3 mm behind the wall face
 
 # Pedestals: (name, x0, y0, x1, y1). Heights come from the measured chip depth.
 KRAKEN_BAR = ("KrakenSDR isothermal bar", KX[0] - 11.5, 196, KX[-1] + 11.5, 216)
@@ -152,3 +159,74 @@ POWER_W = {
     "LoRa node (RX)": 0.2,
     "BLE sniffer": 0.1,
 }
+
+# ------------------------------------------------------------------ MacBook Pro 16"
+# Apple publishes only the envelope: 355.7 x 248.1 x 16.8 mm (16-inch, 2021 and
+# later). Apple has no dimensional drawing for it (developer.apple.com/accessories/
+# dimensional-drawings lists only the MacBook Neo), so every other number here
+# is an ESTIMATE from photos and replacement-part listings. Measure your own Mac
+# and update these before cutting metal; check_model.py re-verifies the fit.
+MAC = dict(
+    W=W, D=D, H=16.8,            # published
+    base_h=10.6, lid_h=6.2,      # estimate (split of the 16.8 mm)
+    r_plan=10.0,                 # estimate: plan-view corner radius
+    r_bot=2.5,                   # estimate: bottom edge fillet
+    r_top=1.2,                   # estimate: top deck edge fillet
+    foot_d=15.0, foot_inset=(25.0, 22.0),   # estimate: 4 round feet, centre inset from side / front-rear
+    mass_kg=2.14,                # published (M4 Pro)
+)
+# Side ports (estimate): (name, side, y of centre from the FRONT edge, opening w x h,
+# mating plug overmould w x h). Centres sit MAC_PORT_CZ above the Mac's bottom face.
+MAC_PORTS = [
+    ("MagSafe 3", "L", 218.0, (9.6, 3.0), (12.0, 5.0)),
+    ("Thunderbolt 4 L1", "L", 193.0, (8.9, 3.2), (12.2, 6.5)),
+    ("Thunderbolt 4 L2", "L", 178.0, (8.9, 3.2), (12.2, 6.5)),
+    ("Headphone", "L", 152.0, (3.6, 3.6), (7.0, 7.0)),
+    ("HDMI", "R", 208.0, (14.4, 4.6), (21.0, 10.5)),
+    ("Thunderbolt 4 R", "R", 186.0, (8.9, 3.2), (12.2, 6.5)),
+    ("SDXC", "R", 157.0, (24.0, 2.2), (24.0, 2.1)),
+]
+MAC_PORT_CZ = 6.6                 # estimate: port centre height above the Mac's bottom face
+MAC_PLUG_LEN = 40.0               # plug + strain relief sticking out of the side
+# Lid swing (estimate): when open, the display's lower edge drops behind the
+# base's rear face. Keep this box clear: up to 8 mm behind the rear face, from
+# 5 mm above the Mac's bottom face upward.
+LID_KEEPOUT = dict(dy=8.0, z_above_bottom=5.0)
+
+# ------------------------------------------------------------------ mount (Mac to sled)
+# Slide-in cradle: the Mac slides in from the front between four TPU-lined side
+# jaws, stops against two rear corner stops and is locked by two spring pawls
+# that pop up in front of its front face. Lift is held by the jaws' clamp
+# friction (the MacBook has no undercut that could be hooked without covering
+# a port, a vent or the lid's path).
+JAW_T = 2.5                  # 6061 jaw web, black anodised
+LINER_T = 0.8                # TPU 85A liner; 0.15 mm nominal squeeze on the Mac's width tolerance
+FLANGE_T = 1.2               # jaw flange on the top plate, under the Mac's edge (1.4 mm air gap left)
+FLANGE_W = 9.0               # flange reaches this far in under the Mac
+JAWS = [   # side, y0, y1, top above the Mac's bottom face, rear corner return
+    dict(name="Jaw FL", side="L", y0=44.0, y1=76.0, top=7.0, rear=False),
+    dict(name="Jaw FR", side="R", y0=6.0, y1=30.0, top=7.0, rear=False),
+    dict(name="Jaw RL", side="L", y0=200.0, y1=D, top=3.0, rear=True),
+    dict(name="Jaw RR", side="R", y0=220.0, y1=D, top=3.0, rear=True),
+]
+REAR_RETURN = 22.0           # rear stop wraps 22 mm in from each side (12 mm of contact past the corner radius)
+JAW_SCREWS = {"Jaw FL": (50.0, 70.0), "Jaw FR": (12.0, 24.0), "Jaw RL": (206.0, 238.0), "Jaw RR": (233.0, 241.0)}
+JAW_SCREW_X = 4.0            # countersunk screws through the flange, top plate and into the wall boss
+LATCH = dict(x0=10.5, x1=25.5, y0=-6.5, z0=0.5,            # block in front of the sled's front wall (left; mirrored)
+             pawl_x=(14.5, 19.5), pawl_y=(-3.0, 0.0), pawl_up=2.5,  # pawl rises 2.5 mm above the Mac's bottom face
+             pin_z=10.0, spring=dict(od=2.6, wire=0.3, turns=7),
+             screws=((13.0, 5.0), (22.5, 5.0)))          # (x, z) of the two M2 screws into the front wall
+SILICONE_RAILS = [(16.0, 42.0), (W - 42.0, W - 16.0)]       # x ranges; the Mac's feet sit on these
+
+# ------------------------------------------------------------------ fasteners
+WALL_BOSS_R = 2.0            # bosses milled inside the perimeter wall, tapped M2
+TOP_SCREWS = [               # ISO 14583 M2x4 pan head through the top plate into wall bosses
+    (4.0, 100.0), (4.0, 150.0),
+    (60.0, 4.0), (120.0, 4.0), (172.0, 4.0), (222.0, 4.0), (300.0, 4.0),
+    (W - 4.0, 57.75), (W - 4.0, 113.2), (W - 4.0, 141.1), (W - 4.0, 170.0),
+]
+BOSS_R = 2.2                 # board standoff bosses (milled), tapped M2 / M2.5
+HOLE_INSET = 3.0             # default board hole inset from each corner
+# HackRF One mounting holes, measured from the KiCad board in the model (world mm)
+HACKRF_HOLES = [(178.78, 142.13), (291.26, 142.15), (291.22, 212.86), (180.49, 210.71)]
+MIN_ENGAGEMENT = 1.5         # x nominal diameter of thread engaged in aluminium
