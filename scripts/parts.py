@@ -130,8 +130,16 @@ def sma_inside_len():
     return SMA["flange_t"] + SMA["body_len"] + SMA["ferrule_len"]
 
 
-def sma_bulkhead(name, at, wall_t, c, materials, stage):
-    """`at` = centre of the hole on the panel's outer face; axis +X (outwards)."""
+def up_in_local(axis):
+    """World +Z expressed in the local XY plane of a part placed with `axis`."""
+    from geom import AXES
+    v = AXES[axis].transposed() @ mathutils.Vector((0, 0, 1))
+    return v.x, v.y
+
+
+def sma_bulkhead(name, at, wall_t, c, materials, stage, axis="+X"):
+    """`at` = centre of the hole on the panel's outer face; `axis` points outwards.
+    The D-flat is always on top."""
     s = SMA
     r = s["thread_od"] / 2
     rr = r - 0.42
@@ -142,8 +150,11 @@ def sma_bulkhead(name, at, wall_t, c, materials, stage):
         z -= s["pitch"]
     prof += [(r, z), (r, -wall_t), (s["bore"] / 2, -wall_t)]
     barrel = lathe(name + " barrel", prof, materials["gold"], c, seg=36, closed=True)
-    # D-flat (world +z side = local -x)
-    boolean(barrel, rbox("cut", -r - 1, -r - 1, -wall_t - 0.1, -s["flat"], r + 1, s["out_len"] + 0.1, None, stage))
+    # D-flat on the world-up side
+    ux, uy = up_in_local(axis)
+    cut = rbox("cut", s["flat"], -r - 1, -wall_t - 0.1, r + 1, r + 1, s["out_len"] + 0.1, None, stage)
+    cut.data.transform(mathutils.Matrix.Rotation(math.atan2(uy, ux), 4, "Z"))
+    boolean(barrel, cut)
     ptfe = lathe(name + " PTFE", [(0, s["out_len"] - 0.05), (s["bore"] / 2, s["out_len"] - 0.05),
                                   (s["bore"] / 2, -wall_t), (0, -wall_t)], materials["ptfe"], c, seg=24)
     pin = lathe(name + " contact", [(0, s["out_len"] - 0.02), (s["pin"] / 2, s["out_len"] - 0.02),
@@ -164,8 +175,60 @@ def sma_bulkhead(name, at, wall_t, c, materials, stage):
         (s["ferrule_r"], zi - sma_inside_len()), (0, zi - sma_inside_len()), (0, zi + 0.0)],
         materials["gold"], c, seg=32)
     ob = join([barrel, ptfe, pin, lw, nut, inner], name)
-    place(ob, at, "+X", spin=0.0)
+    place(ob, at, axis, spin=0.0)
     return ob
+
+
+def sma_antenna(name, at, axis, kind, length, c, materials, stage, cable_dir=None):
+    """What plugs into a bulkhead whose mating face is at `at` (outer end of
+    the barrel), pointing `axis`: a folding whip, a coax run, or a GNSS puck
+    on a coax run. Built along local +Z, then placed."""
+    s = SMA
+    ob_parts = []
+    af = 8.0
+    nut = prism(name + " coupling nut", ngon(6, af / 2 / math.cos(math.pi / 6), math.pi / 6), -4.2, 0.8, materials["nickel"], c)
+    nut.modifiers.new("chamfer", "BEVEL").width = 0.3 * MM
+    ob_parts.append(nut)
+    body = lathe(name + " body", [(0, 0.8), (3.2, 0.8), (3.2, 7.0), (2.6, 8.0), (0, 8.0)], materials["nickel"], c, seg=24)
+    ob_parts.append(body)
+    if kind == "whip":
+        hinge = lathe(name + " hinge", [(0, 8.0), (4.0, 8.0), (4.0, 16.0), (0, 16.0)], materials["rubber"], c, seg=24)
+        ob_parts.append(hinge)
+        ob = join(ob_parts, name)
+        place(ob, at, axis)
+        # the whip folds up 90 degrees at the hinge and stands vertical
+        tip = mathutils.Vector(at) + mathutils.Vector(_axis_vec(axis)) * 12.0
+        whip = lathe(name + " whip", [(0, 0), (5.0, 0), (5.0, 6), (4.2, 10), (3.6, length - 8), (3.0, length - 2), (2.0, length), (0, length)],
+                     materials["rubber"], c, seg=24)
+        whip.data.transform(mathutils.Matrix.Translation(tip * MM))
+        return [ob, whip]
+    boot = lathe(name + " boot", [(0, 8.0), (2.6, 8.0), (2.2, 22.0), (1.6, 26.0), (0, 26.0)], materials["rubber"], c, seg=24)
+    ob_parts.append(boot)
+    ob = join(ob_parts, name)
+    place(ob, at, axis)
+    out = mathutils.Vector(_axis_vec(axis))
+    p0 = mathutils.Vector(at) + out * 25.0
+    side = mathutils.Vector(cable_dir or (0, 1, 0))
+    pts = [tuple(p0), tuple(p0 + out * 25), tuple(p0 + out * 45 + side * 25 + mathutils.Vector((0, 0, -6))),
+           tuple(p0 + out * 55 + side * 80 + mathutils.Vector((0, 0, -9)))]
+    from geom import poly_curve
+    cab = poly_curve(name + " coax", pts, materials["rubber"], c, radius=2.5 if kind == "cable" else 1.4, res=3)
+    sp = cab.data.splines[0]
+    sp.type = "NURBS"
+    sp.use_endpoint_u = True
+    sp.order_u = 3
+    cab.data.resolution_u = 16
+    objs = [ob, cab]
+    if kind == "patch":
+        end = mathutils.Vector(pts[-1])
+        puck = lathe(name + " GNSS puck", [(0, 0), (19.0, 0), (19.0, 9.0), (16.0, 14.0), (0, 14.0)], materials["rubber"], c, seg=40)
+        puck.data.transform(mathutils.Matrix.Translation((end + mathutils.Vector((0, 0, -3))) * MM))
+        objs.append(puck)
+    return objs
+
+
+def _axis_vec(axis):
+    return {"+X": (1, 0, 0), "-X": (-1, 0, 0), "+Y": (0, 1, 0), "-Y": (0, -1, 0), "+Z": (0, 0, 1), "-Z": (0, 0, -1)}[axis]
 
 
 # ------------------------------------------------------------------ I-PEX MHF4

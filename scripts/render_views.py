@@ -16,7 +16,7 @@ import mathutils
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sled_config import D, LANES, MAC_Z, W, Z_SMA  # noqa: E402
 
-VIEWS = ("hero", "hero_left", "insert", "wiring", "exploded", "layout", "thermal", "latch", "rear_stop", "sma", "fasteners", "reference")
+VIEWS = ("hero", "hero_left", "antennas", "insert", "wiring", "exploded", "layout", "thermal", "latch", "rear_stop", "sma", "fasteners", "reference")
 ROOT = Path(__file__).resolve().parents[1]
 HDRI = ROOT / "build/hdri/studio_small_09_2k.hdr"
 HDRI_URL = "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/studio_small_09_2k.hdr"
@@ -95,6 +95,7 @@ p.inputs["Roughness"].default_value = 0.45
 
 hide("Reference - real assets")
 hide("Keep-out envelopes")
+hide("Antennas")
 
 if view == "hero":
     camera((520, -300, 165), (225, 95, 22), lens=45, fstop=5.6)
@@ -107,6 +108,10 @@ elif view == "insert":
     move(col("MacBook Pro 16").objects, dz=38)
     bpy.data.objects["Lid hinge"].rotation_euler = (0, 0, 0)    # lid closed
     camera((-95, -120, 34), (30, 25, 17), lens=50, fstop=8)
+elif view == "antennas":
+    # every radio's antenna on its SMA: folding whips stand up, coax runs leave to the array, loop and GNSS puck
+    hide("Antennas", False)
+    camera((760, -420, 330), (250, 110, 70), lens=40, fstop=11)
 elif view == "wiring":
     # top plate off: the USB flat-flex runs (stuck to its underside) over the boards and the RF pigtails
     for c in ("MacBook Pro 16", "Top plate", "Mount", "External cables", "Bridge"):
